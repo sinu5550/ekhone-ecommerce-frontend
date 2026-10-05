@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FFFFFF;
+  --foreground: #102D50;
+  
+  /* Brand Color Palette */
+  --primary: #F45116;
+  --primary-hover: #D9400B;
+  --primary-light: #FFF0EB;
+  
+  /* Secondary / Navy */
+  --secound: #102D50;
+  --secound-hover: #0A1C33;
+  --secound-light: #1E4675;
+
+  /* Neutral tones */
+  --light-gray: #F5F7FA;
+  --card-bg: #FFFFFF;
+  --card-border: #E5E9F0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), var(--font-manrope), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-inter: var(--font-inter);
+  --font-manrope: var(--font-manrope);
+  --font-hind-siliguri: var(--font-hind-siliguri), 'Hind Siliguri', sans-serif;
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-secound: var(--secound);
+  --color-secound-hover: var(--secound-hover);
+  --color-secound-light: var(--secound-light);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.font-hind {
+  font-family: var(--font-hind-siliguri), 'Hind Siliguri', sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), var(--font-manrope), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* CTA shine: a light streak sliding left to right */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  transform: translateX(-130%) skewX(-20deg);
+  animation: btn-shine-sweep 2.6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+@keyframes btn-shine-sweep {
+  0% { transform: translateX(-130%) skewX(-20deg); }
+  60%, 100% { transform: translateX(330%) skewX(-20deg); }
 }

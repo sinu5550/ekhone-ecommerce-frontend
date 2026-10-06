@@ -20,8 +20,7 @@ export default async function NotFound() {
 
     try {
         const catRes = await apiClient("/api/categories", {
-            cache: "no-store",
-            next: { revalidate: 0 }
+            next: { revalidate: 15, tags: ['categories'] }
         });
         if (Array.isArray(catRes)) {
             categories = catRes;
@@ -31,7 +30,9 @@ export default async function NotFound() {
             categories = catRes.categories;
         }
     } catch (e) {
-        console.warn("NotFound: Could not fetch categories:", e.message);
+        if (e?.digest !== "DYNAMIC_SERVER_USAGE" && !e?.message?.includes("Dynamic server usage")) {
+            console.warn("NotFound: Could not fetch categories:", e.message);
+        }
     }
 
     // Default fallback categories if database returns empty

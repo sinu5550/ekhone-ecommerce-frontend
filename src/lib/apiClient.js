@@ -13,6 +13,11 @@ export async function apiClient(endpoint, options = {}) {
         headers,
     };
 
+    // If neither cache nor next revalidation is explicitly provided, default to ISR revalidation (15s)
+    if (!config.cache && !config.next) {
+        config.next = { revalidate: 15 };
+    }
+
     try {
         const res = await fetch(url, config);
         if (!res.ok) {
@@ -24,7 +29,12 @@ export async function apiClient(endpoint, options = {}) {
         }
         return await res.json();
     } catch (err) {
+        // If it's Next.js dynamic server bailout or abort, rethrow without noisy logging
+        if (err?.digest === "DYNAMIC_SERVER_USAGE" || err?.message?.includes("Dynamic server usage")) {
+            throw err;
+        }
         console.error(`API Client Error (${url}):`, err.message);
         throw err;
     }
 }
+

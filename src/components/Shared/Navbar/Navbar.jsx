@@ -7,8 +7,7 @@ export default async function Navbar() {
 
     try {
         const catRes = await apiClient("/api/categories", {
-            cache: "no-store",
-            next: { revalidate: 0 }
+            next: { revalidate: 15, tags: ['categories'] }
         });
         if (Array.isArray(catRes)) {
             categories = catRes;
@@ -18,17 +17,20 @@ export default async function Navbar() {
             categories = catRes.categories;
         }
     } catch (e) {
-        console.warn("Navbar: Could not fetch categories:", e.message);
+        if (e?.digest !== "DYNAMIC_SERVER_USAGE" && !e?.message?.includes("Dynamic server usage")) {
+            console.warn("Navbar: Could not fetch categories:", e.message);
+        }
     }
 
     try {
         const contactRes = await apiClient("/api/contact", {
-            cache: "no-store",
-            next: { revalidate: 0 }
+            next: { revalidate: 15, tags: ['contact'] }
         });
         contactData = contactRes?.data || contactRes || null;
     } catch (e) {
-        console.warn("Navbar: Could not fetch contact info:", e.message);
+        if (e?.digest !== "DYNAMIC_SERVER_USAGE" && !e?.message?.includes("Dynamic server usage")) {
+            console.warn("Navbar: Could not fetch contact info:", e.message);
+        }
     }
 
     return (

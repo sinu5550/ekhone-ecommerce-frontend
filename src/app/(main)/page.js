@@ -15,8 +15,7 @@ export default async function HomePage() {
   // 1. Fetch hero sliders
   try {
     const heroRes = await apiClient("/api/hero-sliders", {
-      cache: "no-store",
-      next: { revalidate: 0 },
+      next: { revalidate: 15, tags: ["hero-sliders"] },
     });
     if (Array.isArray(heroRes)) {
       heroSliders = heroRes;
@@ -24,14 +23,15 @@ export default async function HomePage() {
       heroSliders = heroRes.data;
     }
   } catch (err) {
-    console.warn("HomePage: Could not fetch hero sliders:", err.message);
+    if (err?.digest !== "DYNAMIC_SERVER_USAGE" && !err?.message?.includes("Dynamic server usage")) {
+      console.warn("HomePage: Could not fetch hero sliders:", err.message);
+    }
   }
 
   // 2. Fetch Categories
   try {
     const catRes = await apiClient("/api/categories", {
-      cache: "no-store",
-      next: { revalidate: 0 },
+      next: { revalidate: 15, tags: ["categories"] },
     });
     if (Array.isArray(catRes)) {
       categories = catRes;
@@ -41,25 +41,27 @@ export default async function HomePage() {
       categories = catRes.categories;
     }
   } catch (err) {
-    console.warn("HomePage: Could not fetch categories:", err.message);
+    if (err?.digest !== "DYNAMIC_SERVER_USAGE" && !err?.message?.includes("Dynamic server usage")) {
+      console.warn("HomePage: Could not fetch categories:", err.message);
+    }
   }
 
   // 3. Fetch Grouped Products by Category (/api/product/grouped)
   try {
     const groupedRes = await apiClient("/api/product/grouped", {
-      cache: "no-store",
-      next: { revalidate: 0 },
+      next: { revalidate: 15, tags: ["products"] },
     });
     groupedProducts = groupedRes?.data || groupedRes || {};
   } catch (err) {
-    console.warn("HomePage: Could not fetch grouped products:", err.message);
+    if (err?.digest !== "DYNAMIC_SERVER_USAGE" && !err?.message?.includes("Dynamic server usage")) {
+      console.warn("HomePage: Could not fetch grouped products:", err.message);
+    }
   }
 
   // 4. Fetch New Arrival Products (/api/product/new)
   try {
     const newRes = await apiClient("/api/product/new", {
-      cache: "no-store",
-      next: { revalidate: 0 },
+      next: { revalidate: 15, tags: ["products"] },
     });
     if (Array.isArray(newRes)) {
       newArrivalProducts = newRes;
@@ -69,14 +71,15 @@ export default async function HomePage() {
       newArrivalProducts = newRes.products;
     }
   } catch (err) {
-    console.warn("HomePage: Could not fetch new products:", err.message);
+    if (err?.digest !== "DYNAMIC_SERVER_USAGE" && !err?.message?.includes("Dynamic server usage")) {
+      console.warn("HomePage: Could not fetch new products:", err.message);
+    }
   }
 
   // 5. Fetch All Products (Catalog) (/api/product?limit=20)
   try {
     const prodRes = await apiClient("/api/product?limit=20", {
-      cache: "no-store",
-      next: { revalidate: 0 },
+      next: { revalidate: 15, tags: ["products"] },
     });
     if (Array.isArray(prodRes)) {
       allProducts = prodRes;
@@ -89,7 +92,9 @@ export default async function HomePage() {
       allProducts = prodRes.data.products;
     }
   } catch (err) {
-    console.warn("HomePage: Could not fetch all products:", err.message);
+    if (err?.digest !== "DYNAMIC_SERVER_USAGE" && !err?.message?.includes("Dynamic server usage")) {
+      console.warn("HomePage: Could not fetch all products:", err.message);
+    }
   }
 
   // Build category showcase list: for each active category, find its products from groupedProducts or allProducts

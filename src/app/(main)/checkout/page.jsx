@@ -10,8 +10,7 @@ export default async function CheckoutPage() {
     let contactData = null;
     try {
         const contactRes = await apiClient("/api/contact", {
-            cache: "no-store",
-            next: { revalidate: 0 }
+            next: { revalidate: 15, tags: ['contact'] }
         });
         contactData = contactRes?.data || contactRes || null;
     } catch (_) {}

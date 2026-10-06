@@ -16,12 +16,13 @@ export default async function Footer() {
   let contactData = null;
   try {
     const contactRes = await apiClient("/api/contact", {
-      cache: "no-store",
-      next: { revalidate: 0 },
+      next: { revalidate: 15, tags: ["contact"] },
     });
     contactData = contactRes?.data || contactRes || {};
   } catch (e) {
-    console.warn("Footer: Could not fetch /api/contact", e.message);
+    if (e?.digest !== "DYNAMIC_SERVER_USAGE" && !e?.message?.includes("Dynamic server usage")) {
+      console.warn("Footer: Could not fetch /api/contact", e.message);
+    }
   }
 
   const {

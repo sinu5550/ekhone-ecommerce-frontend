@@ -253,15 +253,20 @@ export default function CheckoutClient({ initialContact = null }) {
 
         const baseItem = {
           productId: productId,
+          productName: item.productName || item.name || item.title || "",
+          name: item.productName || item.name || item.title || "",
           sku: item.sku || null,
           quantity: quantity,
           unitPrice: unitPrice,
+          price: unitPrice,
           discount: totalDiscount,
           discountValue: parseFloat(item.discountValue || 0),
           discountType: item.discountType || "Percentage",
           tax: 0,
           lineTotal: lineTotal,
           originalPrice: originalPrice,
+          category: item.category || item.categoryName || item.subCategory?.category?.name,
+          brand: item.brand || item.brandName || item.brand?.name,
           ...(variantIdVal && { variantId: variantIdVal, productVariantId: variantIdVal }),
           ...(variantAttrs && {
             variantAttributes: variantAttrs,

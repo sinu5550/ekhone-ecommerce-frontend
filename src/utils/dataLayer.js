@@ -52,25 +52,46 @@ export const pushToDataLayer = (payload, isEcommerce = false) => {
 export const formatEcommerceItem = (rawItem, overrideQuantity = null, index = null) => {
   if (!rawItem) return null;
 
-  const id = rawItem.productId || rawItem.id || rawItem._id || rawItem.sku || '';
-  const name = rawItem.productName || rawItem.name || rawItem.title || '';
+  const id =
+    rawItem.productId ||
+    rawItem.product?.id ||
+    rawItem.product?._id ||
+    rawItem.id ||
+    rawItem._id ||
+    rawItem.sku ||
+    '';
+
+  const name =
+    rawItem.productName ||
+    rawItem.product?.productName ||
+    rawItem.name ||
+    rawItem.product?.name ||
+    rawItem.title ||
+    rawItem.product?.title ||
+    rawItem.bundleName ||
+    rawItem.bundle?.name ||
+    '';
 
   // Extract brand if available
   const brand =
     rawItem.brand?.name ||
+    rawItem.product?.brand?.name ||
     rawItem.brandName ||
+    rawItem.product?.brandName ||
     (typeof rawItem.brand === 'string' ? rawItem.brand : undefined);
 
   // Extract category if available
   const category =
     rawItem.subCategory?.category?.name ||
+    rawItem.product?.subCategory?.category?.name ||
     rawItem.category?.name ||
+    rawItem.product?.category?.name ||
     (typeof rawItem.category === 'string' ? rawItem.category : undefined) ||
     rawItem.subCategory?.name ||
     rawItem.mainCategory?.name;
 
   // Extract variant if available
-  let variant = rawItem.variantType || rawItem.variantTitle;
+  let variant = rawItem.variantType || rawItem.variantTitle || rawItem.productVariant?.variantName;
   if (!variant && rawItem.variantAttributes && typeof rawItem.variantAttributes === 'object') {
     variant = Object.entries(rawItem.variantAttributes)
       .map(([k, v]) => `${k}: ${v}`)
@@ -79,8 +100,12 @@ export const formatEcommerceItem = (rawItem, overrideQuantity = null, index = nu
 
   // Calculate clean numeric price
   const priceVal =
-    rawItem.price !== undefined && rawItem.price !== null
+    rawItem.unitPrice !== undefined && rawItem.unitPrice !== null
+      ? parseFloat(rawItem.unitPrice)
+      : rawItem.price !== undefined && rawItem.price !== null
       ? parseFloat(rawItem.price)
+      : rawItem.product?.price !== undefined && rawItem.product?.price !== null
+      ? parseFloat(rawItem.product.price)
       : rawItem.discountedPrice !== undefined && rawItem.discountedPrice !== null
       ? parseFloat(rawItem.discountedPrice)
       : rawItem.discountPrice !== undefined && rawItem.discountPrice !== null
@@ -465,15 +490,39 @@ export const trackPurchase = (orderData, fallbackItems = [], currency = DEFAULT_
 
   trackedPurchases.add(transactionId);
 
-  // Extract items from orderData or fallbackItems
+  // Extract items from orderData or fallbackItems, with fallback item merging for missing names
   let rawItems = [];
-  if (orderData.items && Array.isArray(orderData.items) && orderData.items.length > 0) {
-    rawItems = orderData.items;
-  } else if (orderData.orderItems && Array.isArray(orderData.orderItems) && orderData.orderItems.length > 0) {
-    rawItems = orderData.orderItems;
-  } else if (fallbackItems && Array.isArray(fallbackItems) && fallbackItems.length > 0) {
-    rawItems = fallbackItems;
+  const sourceItems = (orderData.orderItems && Array.isArray(orderData.orderItems) && orderData.orderItems.length > 0)
+    ? orderData.orderItems
+    : (orderData.items && Array.isArray(orderData.items) && orderData.items.length > 0)
+    ? orderData.items
+    : (fallbackItems && Array.isArray(fallbackItems) && fallbackItems.length > 0)
+    ? fallbackItems
+    : [];
+
+  const fallbackMap = new Map();
+  if (Array.isArray(fallbackItems)) {
+    fallbackItems.forEach((fb) => {
+      const fbId = String(fb.productId || fb.id || fb._id || '');
+      if (fbId) fallbackMap.set(fbId, fb);
+    });
   }
+
+  rawItems = sourceItems.map((item) => {
+    const itemId = String(item.productId || item.product?.id || item.id || item._id || '');
+    const fallback = fallbackMap.get(itemId);
+    if (fallback) {
+      return {
+        ...fallback,
+        ...item,
+        productName: item.productName || item.product?.productName || item.name || fallback.productName || fallback.name || fallback.title || '',
+        name: item.productName || item.product?.productName || item.name || fallback.productName || fallback.name || fallback.title || '',
+        price: item.unitPrice || item.price || fallback.price || fallback.unitPrice || 0,
+        unitPrice: item.unitPrice || item.price || fallback.price || fallback.unitPrice || 0,
+      };
+    }
+    return item;
+  });
 
   // Also include bundle items if present
   if (orderData.bundleItems && Array.isArray(orderData.bundleItems)) {

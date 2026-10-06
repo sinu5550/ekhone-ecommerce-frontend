@@ -121,6 +121,15 @@ export default function DynamicLandingClient({ landingPage, contactData = null }
         }
     };
 
+    const initialBasePrice = useMemo(() => {
+        const vDiscount = defaultVariant ? parseFloat((landingPage?.variantDiscounts || {})[defaultVariant.id] || 0) : 0;
+        const base = parseFloat(defaultVariant?.price || landingPage?.offerPrice || product?.salePrice || product?.price || 0);
+        const insideFee = parseFloat(landingPage?.insideDhakaDelivery || 70);
+        return Math.max(0, base - vDiscount) + insideFee;
+    }, [defaultVariant, landingPage, product]);
+
+    const [currentCheckoutPrice, setCurrentCheckoutPrice] = useState(initialBasePrice);
+
     return (
         <div className="w-full min-h-screen bg-white font-hind text-slate-800 flex flex-col antialiased">
             {/* 1. Dedicated Minimal Landing Header */}
@@ -174,6 +183,7 @@ export default function DynamicLandingClient({ landingPage, contactData = null }
                 variants={variants}
                 variantDiscounts={landingPage?.variantDiscounts || {}}
                 selectedImg={selectedImg}
+                onPriceChange={setCurrentCheckoutPrice}
             />
 
             {/* 7. Dedicated Minimal Landing Footer */}
@@ -181,11 +191,7 @@ export default function DynamicLandingClient({ landingPage, contactData = null }
 
             {/* 8. Mobile & Tablet Floating Sticky Order Bar */}
             <LandingFloatingBottomBar
-                price={(() => {
-                    const vDiscount = selectedVariant ? parseFloat((landingPage?.variantDiscounts || {})[selectedVariant.id] || 0) : 0;
-                    const base = parseFloat(selectedVariant?.price || landingPage?.offerPrice || product?.salePrice || product?.price || 0);
-                    return Math.max(0, base - vDiscount);
-                })()}
+                price={currentCheckoutPrice}
                 onOrderClick={scrollToCheckout}
             />
         </div>

@@ -16,7 +16,8 @@ export default async function Footer() {
     let contactData = null;
     try {
         const contactRes = await apiClient("/api/contact", {
-            next: { revalidate: 120 }
+            cache: "no-store",
+            next: { revalidate: 0 }
         });
         contactData = contactRes?.data || contactRes || {};
     } catch (e) {

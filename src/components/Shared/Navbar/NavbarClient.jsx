@@ -19,14 +19,21 @@ import {
 } from "lucide-react";
 import TopHeader from "./TopHeader";
 import SearchBar from "./SearchBar";
+import { useCategories, useContact } from "@/lib/dataFetch";
+import { useUser } from "@/hooks/useUser";
 
-export default function NavbarClient({ categories = [], contactData = null }) {
+export default function NavbarClient({ categories: initialCategories = [], contactData: initialContact = null }) {
     const pathname = usePathname();
+    const { user, getDisplayName, getUserInitials, getUserEmail } = useUser();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
     const [activeHoverCategory, setActiveHoverCategory] = useState(null);
     const dropdownRef = useRef(null);
+
+    // Live SWR updates on tab focus / interval without manual page refresh
+    const { categories } = useCategories(initialCategories);
+    const { contactData } = useContact(initialContact);
 
     // Scroll state for sticky shadow
     useEffect(() => {
@@ -105,14 +112,61 @@ export default function NavbarClient({ categories = [], contactData = null }) {
 
                     {/* Right: Sign in, Wishlist, Cart Actions (Evaly aesthetic) */}
                     <div className="flex items-center gap-4 sm:gap-6 shrink-0">
-                        {/* Sign in */}
-                        <Link
-                            href="/my-account"
-                            className="flex flex-col items-center justify-center text-slate-700 hover:text-primary transition cursor-pointer group"
-                        >
-                            <User size={20} strokeWidth={1.8} className="group-hover:scale-110 transition-transform" />
-                            <span className="text-[11px] font-medium mt-0.5">Sign in</span>
-                        </Link>
+                        {/* User / Sign in dynamic check */}
+                        {user ? (
+                            <div className="relative group/account">
+                                <Link
+                                    href="/my-account"
+                                    className="flex flex-col items-center justify-center text-slate-700 hover:text-primary transition cursor-pointer group"
+                                >
+                                    <div className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">
+                                        {getUserInitials()}
+                                    </div>
+                                    <span className="text-[11px] font-medium mt-0.5 max-w-[60px] truncate">
+                                        {getDisplayName()}
+                                    </span>
+                                </Link>
+
+                                {/* Dropdown menu */}
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl py-2 opacity-0 invisible group-hover/account:opacity-100 group-hover/account:visible transition-all duration-200 z-50">
+                                    <div className="px-4 py-2 border-b border-slate-100">
+                                        <p className="text-[10px] text-slate-400">Signed in as</p>
+                                        <p className="text-xs font-semibold text-slate-800 truncate">{getUserEmail()}</p>
+                                    </div>
+                                    <Link
+                                        href="/my-account"
+                                        className="block px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+                                    >
+                                        My Profile
+                                    </Link>
+                                    <Link
+                                        href="/my-account/orders"
+                                        className="block px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+                                    >
+                                        My Orders
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            const { logout } = await import('@/lib/auth-helpers');
+                                            await logout();
+                                            window.location.href = '/login';
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 hover:bg-slate-50 transition-colors border-t border-slate-100 mt-1 pt-2 cursor-pointer"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <Link
+                                href="/login"
+                                className="flex flex-col items-center justify-center text-slate-700 hover:text-primary transition cursor-pointer group"
+                            >
+                                <User size={20} strokeWidth={1.8} className="group-hover:scale-110 transition-transform" />
+                                <span className="text-[11px] font-medium mt-0.5">Sign in</span>
+                            </Link>
+                        )}
 
                         {/* Wishlist */}
                         <Link
@@ -332,12 +386,12 @@ export default function NavbarClient({ categories = [], contactData = null }) {
                                     <span>Track Your Order</span>
                                 </Link>
                                 <Link
-                                    href="/my-account"
+                                    href={user ? "/my-account" : "/login"}
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-50 text-slate-700"
                                 >
                                     <User size={15} className="text-primary" />
-                                    <span>My Account / Sign in</span>
+                                    <span>{user ? `My Account (${getDisplayName()})` : "Sign in / Create Account"}</span>
                                 </Link>
                             </div>
                         </div>

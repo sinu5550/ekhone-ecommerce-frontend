@@ -41,7 +41,8 @@ export default function LandingCheckoutSection({
     onSelectVariant,
     variants = [],
     variantDiscounts = {},
-    selectedImg
+    selectedImg,
+    onPriceChange
 }) {
     const product = landingPage?.product || {};
     const bumpProduct = landingPage?.orderBumpProduct || null;
@@ -107,6 +108,13 @@ export default function LandingCheckoutSection({
     const discountedTotal = Math.max(0, totalBeforeDiscount - bumpDiscountAmount);
     // Grand Total including delivery fee
     const grandTotal = discountedTotal + deliveryFee;
+
+    // Synchronize current total price with parent/floating bottom bar
+    useEffect(() => {
+        if (typeof onPriceChange === "function") {
+            onPriceChange(grandTotal);
+        }
+    }, [grandTotal, onPriceChange]);
 
     const getVariantLabel = (v) => {
         if (!v) return "";
@@ -418,9 +426,9 @@ export default function LandingCheckoutSection({
                     </div>
                 ) : (
                     /* Checkout Form Container */
-                    <form onSubmit={handleFormSubmit} suppressHydrationWarning className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        {/* Col 1: Customer Details Form (Span 7) */}
-                        <div className="lg:col-span-7 bg-white rounded-lg p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
+                    <form onSubmit={handleFormSubmit} suppressHydrationWarning className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+                        {/* Col 1: Customer Details Form (Span 6) */}
+                        <div className="lg:col-span-6 bg-white rounded-lg p-6 sm:p-8 border border-slate-200 shadow-xs space-y-6">
                             <div className="flex items-center gap-2 pb-3 border-b border-rose-100">
                                 <UserCheck size={22} className="text-slate-900 shrink-0" strokeWidth={2.4} />
                                 <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
@@ -557,8 +565,8 @@ export default function LandingCheckoutSection({
                             </div>
                         </div>
 
-                        {/* Col 2: Order Summary & Confirm Button (Span 5) */}
-                        <div className="lg:col-span-5 bg-white rounded-lg p-6 sm:p-8 border border-slate-200 shadow-xs flex flex-col justify-between space-y-6">
+                        {/* Col 2: Order Summary & Confirm Button (Span 6) */}
+                        <div className="lg:col-span-6 bg-white rounded-lg p-6 sm:p-8 border border-slate-200 shadow-xs flex flex-col justify-between space-y-6">
                             <div className="space-y-5">
                                 <div className="flex items-center gap-2 pb-3 border-b border-rose-100">
                                     <Receipt size={22} className="text-slate-900 shrink-0" strokeWidth={2.4} />
@@ -693,20 +701,20 @@ export default function LandingCheckoutSection({
                                 {bumpProduct && (
                                     <div 
                                         onClick={() => setIncludeBump(!includeBump)}
-                                        className={`p-3.5 rounded-lg border-2 transition-all cursor-pointer relative overflow-hidden select-none ${
+                                        className={`p-3.5 rounded-lg border-2 transition-all duration-300 cursor-pointer relative overflow-hidden select-none ${
                                             includeBump
-                                                ? "border-primary bg-gradient-to-r from-amber-50/70 to-rose-50/60 shadow-md ring-2 ring-primary/20"
-                                                : "border-dashed border-amber-300 bg-amber-50/30 hover:bg-amber-50/60"
+                                                ? "border-primary bg-gradient-to-r from-amber-50/70 to-rose-50/60 shadow-md ring-2 ring-primary/20 scale-100"
+                                                : "border-dashed border-amber-400 bg-amber-50/40 hover:bg-amber-50/70 shadow-xs animate-bump-pulse animate-bump-lightning"
                                         }`}
                                     >
                                         {/* Flash badge - 2 rows on mobile, 1 row on sm+ */}
-                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 mb-2.5">
-                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-extrabold bg-primary text-white shadow-2xs">
-                                                <Flame size={12} className="animate-pulse shrink-0" />
-                                                <span>এক ক্লিকে যোগ করুন (স্পেশাল অফার)</span>
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
+                                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-black bg-gradient-to-r from-[#F45116] to-[#D9400B] text-white shadow-md ring-2 ring-primary/25 tracking-tight">
+                                                <Flame size={15} className="animate-pulse text-amber-200 shrink-0 fill-amber-200" />
+                                                <span className="font-extrabold drop-shadow-xs">এক ক্লিকে যোগ করুন (স্পেশাল অফার)</span>
                                             </span>
                                             {parseFloat(landingPage.orderBumpDiscount || 0) > 0 && (
-                                                <span className="inline-flex items-center text-[10px] sm:text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                                                <span className="inline-flex items-center text-xs sm:text-xs font-black text-emerald-800 bg-emerald-100/90 px-2.5 py-1 rounded-full border border-emerald-300 shadow-2xs">
                                                     ৳{parseFloat(landingPage.orderBumpDiscount)} অতিরিক্ত ছাড়!
                                                 </span>
                                             )}

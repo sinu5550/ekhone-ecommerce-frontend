@@ -7,7 +7,8 @@ export default async function Navbar() {
 
     try {
         const catRes = await apiClient("/api/categories", {
-            next: { revalidate: 60 }
+            cache: "no-store",
+            next: { revalidate: 0 }
         });
         if (Array.isArray(catRes)) {
             categories = catRes;
@@ -22,7 +23,8 @@ export default async function Navbar() {
 
     try {
         const contactRes = await apiClient("/api/contact", {
-            next: { revalidate: 60 }
+            cache: "no-store",
+            next: { revalidate: 0 }
         });
         contactData = contactRes?.data || contactRes || null;
     } catch (e) {

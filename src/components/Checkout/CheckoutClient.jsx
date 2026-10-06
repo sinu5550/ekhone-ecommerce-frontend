@@ -12,8 +12,13 @@ import Swal from "sweetalert2";
 import { FaShoppingBag } from "react-icons/fa";
 import { useCart } from "@/hooks/useCart";
 import BillingDetails from "@/components/Checkout/BillingDetails";
-import OrderSummary from "@/components/Checkout/OrderSummary";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
+import { 
+  trackBeginCheckout, 
+  trackAddShippingInfo, 
+  trackAddPaymentInfo, 
+  trackPurchase 
+} from "@/utils/dataLayer";
 
 export default function CheckoutClient({ initialContact = null }) {
   const router = useRouter();
@@ -69,9 +74,13 @@ export default function CheckoutClient({ initialContact = null }) {
     if (buyNow && (buyNow.productId || buyNow.id)) {
       setIsBuyNow(true);
       setCheckoutItems([buyNow]);
+      trackBeginCheckout([buyNow]);
     } else {
       setIsBuyNow(false);
       setCheckoutItems(cart || []);
+      if (cart && cart.length > 0) {
+        trackBeginCheckout(cart);
+      }
     }
     setIsLoaded(true);
   }, [cartLoading, cart, getBuyNowItem]);
@@ -333,6 +342,9 @@ export default function CheckoutClient({ initialContact = null }) {
       if (!orderData || !orderData.id) {
         throw new Error("Order created but missing order ID");
       }
+
+      // Track purchase event in DataLayer with real transaction/order data (deduplicated)
+      trackPurchase(orderData, items);
 
       if (typeof window !== "undefined") {
         try {

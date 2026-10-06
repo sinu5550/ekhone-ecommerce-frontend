@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { apiClient } from "@/lib/apiClient";
+import { trackBeginCheckout, trackPurchase } from "@/utils/dataLayer";
 
 export default function LandingCheckoutSection({ 
     landingPage,
@@ -341,7 +342,12 @@ export default function LandingCheckoutSection({
             });
 
             if (response.success || response.id || response.orderNumber) {
-                const orderNum = response.orderNumber || response.data?.orderNumber || response.id;
+                const orderData = response.data || response;
+                const orderNum = orderData.orderNumber || response.orderNumber || response.id;
+                
+                // Track purchase event in DataLayer
+                trackPurchase(orderData, orderItemsPayload);
+
                 toast.success("আপনার অর্ডারটি সফলভাবে সম্পন্ন হয়েছে!", { id: toastId });
                 setOrderSuccess({
                     orderNumber: orderNum,

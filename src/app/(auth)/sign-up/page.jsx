@@ -167,7 +167,7 @@ const SignUp = () => {
     };
 
     return (
-        <div className="min-h-[calc(100vh-160px)] bg-gray-50/50 flex flex-col justify-start md:justify-center py-8 md:py-16 px-4 sm:px-6 lg:px-8 font-sans">
+        <div className="min-h-[calc(100vh-160px)] bg-gray-50/50 flex flex-col justify-start md:justify-center py-8 md:pb-16 px-4 sm:px-6 lg:px-8 font-sans">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <h2 className="text-center text-3xl font-extrabold text-[#102D50] tracking-tight">
                     Create Account

@@ -1,32 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #102D50;
-  
+  --background: #ffffff;
+  --foreground: #102d50;
+
   /* Brand Color Palette */
-  --primary: #F45116;
-  --primary-hover: #D9400B;
-  --primary-light: #FFF0EB;
-  
+  --primary: #f45116;
+  --primary-hover: #d9400b;
+  --primary-light: #fff0eb;
+
   /* Secondary / Navy */
-  --secound: #102D50;
-  --secound-hover: #0A1C33;
-  --secound-light: #1E4675;
+  --secound: #102d50;
+  --secound-hover: #0a1c33;
+  --secound-light: #1e4675;
 
   /* Neutral tones */
-  --light-gray: #F5F7FA;
-  --card-bg: #FFFFFF;
-  --card-border: #E5E9F0;
+  --light-gray: #f5f7fa;
+  --card-bg: #ffffff;
+  --card-border: #e5e9f0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), var(--font-manrope), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans:
+    var(--font-plus-jakarta), var(--font-inter), var(--font-manrope), -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-plus-jakarta: var(--font-plus-jakarta), "Plus Jakarta Sans", sans-serif;
   --font-inter: var(--font-inter);
   --font-manrope: var(--font-manrope);
-  --font-hind-siliguri: var(--font-hind-siliguri), 'Hind Siliguri', sans-serif;
+  --font-hind-siliguri: var(--font-hind-siliguri), "Hind Siliguri", sans-serif;
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-light: var(--primary-light);
@@ -36,13 +39,21 @@
 }
 
 .font-hind {
-  font-family: var(--font-hind-siliguri), 'Hind Siliguri', sans-serif;
+  font-family: var(--font-hind-siliguri), "Hind Siliguri", sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), var(--font-manrope), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    var(--font-plus-jakarta),
+    var(--font-inter),
+    var(--font-manrope),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -53,6 +64,56 @@ body {
 }
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* React Phone Input 2 Overrides */
+.react-tel-input .form-control {
+  width: 100% !important;
+  height: 44px !important;
+  padding-left: 48px !important;
+  background-color: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  color: #111827 !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.react-tel-input .form-control:focus {
+  border-color: #f45116 !important;
+  box-shadow: 0 0 0 1px #f45116 !important;
+  outline: none !important;
+}
+
+.react-tel-input .flag-dropdown {
+  background-color: transparent !important;
+  border: none !important;
+  border-right: 1px solid transparent !important;
+  border-radius: 6px 0 0 6px !important;
+  padding-left: 4px !important;
+}
+
+.react-tel-input .flag-dropdown.open,
+.react-tel-input .flag-dropdown:hover {
+  background-color: transparent !important;
+}
+
+.react-tel-input .selected-flag {
+  background-color: transparent !important;
+  border-radius: 6px 0 0 6px !important;
+  padding: 0 6px 0 10px !important;
+}
+
+.react-tel-input .selected-flag:hover,
+.react-tel-input .selected-flag:focus {
+  background-color: transparent !important;
+}
+
+.react-tel-input .country-list {
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #f3f4f6 !important;
+  margin-top: 4px !important;
 }
 
 /* CTA shine: a light streak sliding left to right */
@@ -80,6 +141,94 @@ body {
   z-index: 1;
 }
 @keyframes btn-shine-sweep {
-  0% { transform: translateX(-130%) skewX(-20deg); }
-  60%, 100% { transform: translateX(330%) skewX(-20deg); }
+  0% {
+    transform: translateX(-130%) skewX(-20deg);
+  }
+  60%,
+  100% {
+    transform: translateX(330%) skewX(-20deg);
+  }
+}
+
+/* Subtle zoom-in zoom-out animation for Order Bump (Crystal Sharp / No Text Blurriness) */
+@keyframes bump-subtle-zoom {
+  0%,
+  100% {
+    transform: scale3d(1, 1, 1);
+  }
+  50% {
+    transform: scale3d(1.015, 1.015, 1);
+  }
+}
+
+.animate-bump-pulse {
+  animation: bump-subtle-zoom 2.4s ease-in-out infinite;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  -webkit-font-smoothing: subpixel-antialiased;
+  will-change: transform;
+}
+
+/* Left-to-Right Lightning / Sheen Sweep */
+@keyframes bump-lightning-sweep {
+  0% {
+    transform: translate3d(-150%, 0, 0) skewX(-20deg);
+  }
+  45%,
+  100% {
+    transform: translate3d(350%, 0, 0) skewX(-20deg);
+  }
+}
+
+.animate-bump-lightning::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 20%,
+    rgba(255, 255, 255, 0.75) 50%,
+    rgba(255, 255, 255, 0.08) 80%,
+    transparent 100%
+  );
+  transform: translate3d(-150%, 0, 0) skewX(-20deg);
+  animation: bump-lightning-sweep 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* High-energy vibrating shake animation */
+@keyframes shake-x {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-3.5px) rotate(-0.5deg);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(3.5px) rotate(0.5deg);
+  }
+}
+
+.animate-shake-x {
+  animation: shake-x 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+  transform-origin: center;
+}
+
+.hover-shake-x:hover {
+  animation: shake-x 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
 }

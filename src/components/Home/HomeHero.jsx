@@ -174,7 +174,7 @@ export default function HomeHero({ heroSliders = [], featuredProducts = [] }) {
     const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
     return (
-        <section className="w-full py-4 sm:py-6 bg-slate-50/70 font-sans">
+        <section className="w-full py-4 sm:py-6 bg-slate-50/70 font-sans ">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Main Hero Grid: Left Large Dark Hero Card (8 cols) + Right 2 Promo Cards (4 cols) */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-stretch">
@@ -206,17 +206,17 @@ export default function HomeHero({ heroSliders = [], featuredProducts = [] }) {
                                     {slide.description}
                                 </p>
 
-                                {/* Trust Metrics Row */}
-                                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-white/10 text-left">
-                                    <div>
+                                {/* Trust Metrics Row with Vertical Dividers */}
+                                <div className="flex items-center divide-x divide-white/20 text-left pt-1">
+                                    <div className="pr-4 sm:pr-6">
                                         <div className="text-xs sm:text-sm font-black text-white">COD</div>
                                         <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">Pay on Delivery</div>
                                     </div>
-                                    <div>
+                                    <div className="px-4 sm:px-6">
                                         <div className="text-xs sm:text-sm font-black text-white">100% Original</div>
                                         <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">Verified Quality</div>
                                     </div>
-                                    <div>
+                                    <div className="pl-4 sm:pl-6">
                                         <div className="text-xs sm:text-sm font-black text-white">7-Day</div>
                                         <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tight">Easy Returns</div>
                                     </div>
@@ -340,68 +340,88 @@ export default function HomeHero({ heroSliders = [], featuredProducts = [] }) {
                         </div>
                     </div>
 
-                    {/* ================= RIGHT 2 PROMO CARDS (Span 4) ================= */}
-                    <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-6">
+                    {/* ================= RIGHT 2 PROMO CARDS (Span 3) ================= */}
+                    <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-5">
                         
-                        {/* 1. Top Warm Orange Card: 100% Cash on Delivery */}
-                        <div className="bg-gradient-to-br from-[#FFF5F0] via-[#FFE8DE] to-[#FFD7C5] rounded-2xl sm:rounded-3xl p-2 sm:p-4 flex items-center justify-between relative overflow-hidden border border-orange-200/70 shadow-md group hover:shadow-lg transition">
-                            <div className="space-y-2 max-w-[65%] z-10">
-                                <div className="inline-block px-2.5 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider">
-                                    Trusted Service
-                                </div>
-                                <h3 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+                        {/* 1. Top Card: 100% Cash on Delivery (Primary / Orange Tint) */}
+                        <Link
+                            href="/product"
+                            className="bg-gradient-to-br from-[#FFF1EB] via-[#FFE8DE] to-[#FFDDD0] rounded-3xl p-5 sm:p-6 flex items-center justify-between relative overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group cursor-pointer"
+                        >
+                            {/* Lightning / Light Sweep Sheen from Left to Right on Hover */}
+                            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none z-20" />
+
+                            <div className="space-y-2.5 max-w-[62%] z-10 relative">
+                                <h3 className="text-base sm:text-[17px] font-bold text-slate-900 leading-tight group-hover:text-primary transition-colors">
                                     100% Cash on Delivery
                                 </h3>
-                                <p className="text-xs text-slate-600 font-normal">
-                                    Pay in cash when your order arrives.
+                                <p className="text-[11.5px] text-slate-600 font-normal leading-relaxed">
+                                    Pay in cash when your order arrives
                                 </p>
-                                <Link
-                                    href="/product"
-                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-hover transition pt-2 group-hover:translate-x-1 cursor-pointer"
-                                >
-                                    <span>Shop now</span>
-                                    <ArrowRight size={12} strokeWidth={2.4} />
-                                </Link>
-                            </div>
-
-                            {/* Glowing Orange Cash Icon Box */}
-                            <div className="relative shrink-0">
-                                <div className="absolute inset-0 bg-primary rounded-2xl blur-xl opacity-40 group-hover:opacity-70 transition-opacity" />
-                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#F45116] to-[#D9400B] text-white flex items-center justify-center shadow-lg relative z-10 group-hover:scale-105 transition-transform">
-                                    <Banknote size={26} strokeWidth={2} />
+                                <div className="pt-1">
+                                    <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-slate-900 rounded-full text-xs font-bold shadow-xs hover:shadow-md transition-all duration-300 group-hover:scale-105 active:scale-95">
+                                        <span>Shop now</span>
+                                        <ArrowRight size={12} strokeWidth={2.5} className="text-primary group-hover:translate-x-1 transition-transform" />
+                                    </span>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* 2. Bottom Navy Card: Nationwide Delivery */}
-                        <div className="bg-gradient-to-br from-[#F0F4F8] via-[#E2EAF2] to-[#D0DEEC] rounded-2xl sm:rounded-3xl p-2 sm:p-4 flex items-center justify-between relative overflow-hidden border border-slate-200/80 shadow-md group hover:shadow-lg transition">
-                            <div className="space-y-2 max-w-[65%] z-10">
-                                <div className="inline-block px-2.5 py-0.5 bg-secound/10 text-secound rounded-full text-[10px] font-bold uppercase tracking-wider">
-                                    Express Shipping
+                            {/* 3D Soft Rounded Squircle Icon Box with Enhanced Backdrop Shadow & Glow */}
+                            <div className="relative shrink-0 flex items-center justify-center z-10">
+                                {/* Ambient Backdrop Shadow / Colored Glow */}
+                                <div className="absolute inset-0 rounded-[28px] bg-primary/30 blur-xl transition-all duration-300 group-hover:scale-125 group-hover:bg-primary/45 group-hover:blur-2xl" />
+
+                                {/* Outer Boundary Ring - Appears with Left Tilt on card hover */}
+                                <div className="relative flex items-center justify-center p-2 rounded-[24px] transition-all duration-300 group-hover:-rotate-12 group-hover:scale-110">
+                                    <div className="absolute inset-0 rounded-[24px] bg-primary/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                    
+                                    {/* Inner 3D Solid Primary Squircle Icon */}
+                                    <div className="w-13 h-13 rounded-[16px] bg-gradient-to-br from-[#F45116] to-[#DC2626] text-white flex items-center justify-center shadow-xl shadow-orange-600/40 relative z-10 transition-shadow group-hover:shadow-2xl group-hover:shadow-orange-600/60">
+                                        <Banknote size={24} strokeWidth={2} />
+                                    </div>
                                 </div>
-                                <h3 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
-                                    Nationwide Delivery
+                            </div>
+                        </Link>
+
+                        {/* 2. Bottom Ice Blue Card: Fast Nationwide Delivery */}
+                        <Link
+                            href="/product"
+                            className="bg-gradient-to-br from-[#EBF3FF] via-[#E2EDFE] to-[#D5E5FD] rounded-3xl p-5 sm:p-6 flex items-center justify-between relative overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group cursor-pointer"
+                        >
+                            {/* Lightning / Light Sweep Sheen from Left to Right on Hover */}
+                            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out bg-gradient-to-r from-transparent via-white/40 to-transparent pointer-events-none z-20" />
+
+                            <div className="space-y-2.5 max-w-[62%] z-10 relative">
+                                <h3 className="text-base sm:text-[17px] font-bold text-slate-900 leading-tight group-hover:text-blue-600 transition-colors">
+                                    Fast Nationwide Delivery
                                 </h3>
-                                <p className="text-xs text-slate-600 font-normal">
-                                    Fast & safe  delivery across Bangladesh.
+                                <p className="text-[11.5px] text-slate-600 font-normal leading-relaxed">
+                                    Safe & fast shipping all across Bangladesh
                                 </p>
-                                <Link
-                                    href="/product"
-                                    className="inline-flex items-center gap-1.5 text-xs font-bold text-secound hover:text-primary transition pt-2 group-hover:translate-x-1 cursor-pointer"
-                                >
-                                    <span>Shop now</span>
-                                    <ArrowRight size={12} strokeWidth={2.4} />
-                                </Link>
-                            </div>
-
-                            {/* Glowing Navy Truck Icon Box */}
-                            <div className="relative shrink-0">
-                                <div className="absolute inset-0 bg-secound rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition-opacity" />
-                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#102D50] to-[#0A1C33] text-white flex items-center justify-center shadow-lg relative z-10 group-hover:scale-105 transition-transform">
-                                    <Truck size={26} strokeWidth={2} />
+                                <div className="pt-1">
+                                    <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-slate-900 rounded-full text-xs font-bold shadow-xs hover:shadow-md transition-all duration-300 group-hover:scale-105 active:scale-95">
+                                        <span>Shop now</span>
+                                        <ArrowRight size={12} strokeWidth={2.5} className="text-blue-600 group-hover:translate-x-1 transition-transform" />
+                                    </span>
                                 </div>
                             </div>
-                        </div>
+
+                            {/* 3D Soft Rounded Squircle Icon Box with Enhanced Backdrop Shadow & Glow */}
+                            <div className="relative shrink-0 flex items-center justify-center z-10">
+                                {/* Ambient Backdrop Shadow / Colored Glow */}
+                                <div className="absolute inset-0 rounded-[28px] bg-blue-500/30 blur-xl transition-all duration-300 group-hover:scale-125 group-hover:bg-blue-500/45 group-hover:blur-2xl" />
+
+                                {/* Outer Boundary Ring - Appears with Left Tilt on card hover */}
+                                <div className="relative flex items-center justify-center p-2 rounded-[24px] transition-all duration-300 group-hover:-rotate-12 group-hover:scale-110">
+                                    <div className="absolute inset-0 rounded-[24px] bg-blue-400/25 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                    
+                                    {/* Inner 3D Solid Blue Squircle Icon */}
+                                    <div className="w-13 h-13 rounded-[16px] bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] text-white flex items-center justify-center shadow-xl shadow-blue-600/40 relative z-10 transition-shadow group-hover:shadow-2xl group-hover:shadow-blue-600/60">
+                                        <Truck size={24} strokeWidth={2} />
+                                    </div>
+                                </div>
+                            </div>
+                        </Link>
 
                     </div>
 

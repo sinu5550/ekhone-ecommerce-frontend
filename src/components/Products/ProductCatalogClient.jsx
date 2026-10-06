@@ -38,13 +38,46 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
     const [selectedCat, setSelectedCat] = useState(urlCategory || "All");
     const [sortBy, setSortBy] = useState(urlSort);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const isTypingRef = useRef(false);
 
-    // Sync state when URL params change
+    // Sync state when external URL params change (only if user isn't actively typing)
     useEffect(() => {
-        setSearchInput(urlSearch);
+        if (!isTypingRef.current) {
+            setSearchInput(urlSearch);
+        }
         setSelectedCat(urlCategory || "All");
         setSortBy(urlSort);
     }, [urlSearch, urlCategory, urlSort]);
+
+    // Live search on every keystroke with 200ms debounce
+    useEffect(() => {
+        if (searchInput === urlSearch) return;
+
+        const timer = setTimeout(() => {
+            isTypingRef.current = false;
+            const params = new URLSearchParams(window.location.search);
+            if (searchInput.trim()) {
+                params.set("search", searchInput.trim());
+            } else {
+                params.delete("search");
+                params.delete("q");
+            }
+            if (selectedCat && selectedCat !== "All") {
+                params.set("category", selectedCat);
+            } else {
+                params.delete("category");
+                params.delete("categoryName");
+            }
+            if (sortBy && sortBy !== "featured") {
+                params.set("sort", sortBy);
+            }
+
+            const queryString = params.toString();
+            router.replace(`/product${queryString ? `?${queryString}` : ""}`, { scroll: false });
+        }, 200);
+
+        return () => clearTimeout(timer);
+    }, [searchInput, urlSearch, selectedCat, sortBy, router]);
 
     // Fetch products based on active filters
     useEffect(() => {
@@ -104,8 +137,9 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
         setIsModalOpen(true);
     };
 
-    // Push new query parameters to URL
+    // Push new query parameters to URL immediately
     const updateUrlParams = (newSearch, newCat, newSort) => {
+        isTypingRef.current = false;
         const params = new URLSearchParams();
         if (newSearch && newSearch.trim()) {
             params.set("search", newSearch.trim());
@@ -119,6 +153,11 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
 
         const queryString = params.toString();
         router.push(`/product${queryString ? `?${queryString}` : ""}`);
+    };
+
+    const handleSearchChange = (val) => {
+        isTypingRef.current = true;
+        setSearchInput(val);
     };
 
     const handleSearchSubmit = (e) => {
@@ -138,6 +177,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
     };
 
     const clearAllFilters = () => {
+        isTypingRef.current = false;
         setSearchInput("");
         setSelectedCat("All");
         setSortBy("featured");
@@ -211,8 +251,8 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                 <input
                                     type="text"
                                     value={searchInput}
-                                    onChange={(e) => setSearchInput(e.target.value)}
-                                    placeholder="Filter catalog..."
+                                    onChange={(e) => handleSearchChange(e.target.value)}
+                                    placeholder="Search by name, SKU, brand..."
                                     className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 pl-9 text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition shadow-xs"
                                 />
                                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -220,7 +260,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            setSearchInput("");
+                                            handleSearchChange("");
                                             updateUrlParams("", selectedCat, sortBy);
                                         }}
                                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
@@ -388,7 +428,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                             <input
                                                 type="text"
                                                 value={searchInput}
-                                                onChange={(e) => setSearchInput(e.target.value)}
+                                                onChange={(e) => handleSearchChange(e.target.value)}
                                                 placeholder="Search products..."
                                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none"
                                             />

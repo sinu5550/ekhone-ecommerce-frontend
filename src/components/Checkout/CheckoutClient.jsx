@@ -14,6 +14,12 @@ import { useCart } from "@/hooks/useCart";
 import BillingDetails from "@/components/Checkout/BillingDetails";
 import OrderSummary from "@/components/Checkout/OrderSummary";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
+import { 
+  trackBeginCheckout, 
+  trackAddShippingInfo, 
+  trackAddPaymentInfo, 
+  trackPurchase 
+} from "@/utils/dataLayer";
 
 export default function CheckoutClient({ initialContact = null }) {
   const router = useRouter();
@@ -69,9 +75,13 @@ export default function CheckoutClient({ initialContact = null }) {
     if (buyNow && (buyNow.productId || buyNow.id)) {
       setIsBuyNow(true);
       setCheckoutItems([buyNow]);
+      trackBeginCheckout([buyNow]);
     } else {
       setIsBuyNow(false);
       setCheckoutItems(cart || []);
+      if (cart && cart.length > 0) {
+        trackBeginCheckout(cart);
+      }
     }
     setIsLoaded(true);
   }, [cartLoading, cart, getBuyNowItem]);
@@ -243,15 +253,20 @@ export default function CheckoutClient({ initialContact = null }) {
 
         const baseItem = {
           productId: productId,
+          productName: item.productName || item.name || item.title || "",
+          name: item.productName || item.name || item.title || "",
           sku: item.sku || null,
           quantity: quantity,
           unitPrice: unitPrice,
+          price: unitPrice,
           discount: totalDiscount,
           discountValue: parseFloat(item.discountValue || 0),
           discountType: item.discountType || "Percentage",
           tax: 0,
           lineTotal: lineTotal,
           originalPrice: originalPrice,
+          category: item.category || item.categoryName || item.subCategory?.category?.name,
+          brand: item.brand || item.brandName || item.brand?.name,
           ...(variantIdVal && { variantId: variantIdVal, productVariantId: variantIdVal }),
           ...(variantAttrs && {
             variantAttributes: variantAttrs,
@@ -333,6 +348,9 @@ export default function CheckoutClient({ initialContact = null }) {
       if (!orderData || !orderData.id) {
         throw new Error("Order created but missing order ID");
       }
+
+      // Track purchase event in DataLayer with real transaction/order data (deduplicated)
+      trackPurchase(orderData, items);
 
       if (typeof window !== "undefined") {
         try {

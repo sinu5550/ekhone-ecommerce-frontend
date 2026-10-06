@@ -6,7 +6,6 @@ import {
     Search, 
     SlidersHorizontal, 
     X, 
-    ChevronDown, 
     Check, 
     Loader2, 
     PackageSearch,
@@ -28,9 +27,11 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
     const urlCategory = searchParams.get("category") || searchParams.get("categoryName") || "";
     const urlSort = searchParams.get("sort") || "featured";
 
-    const [products, setProducts] = useState(initialProducts);
+    // Master list of products loaded
+    const [masterProducts, setMasterProducts] = useState(initialProducts);
     const [categories, setCategories] = useState(initialCategories);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isInitialLoading, setIsInitialLoading] = useState(initialProducts.length === 0);
+    const [isFetchingBackground, setIsFetchingBackground] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -40,7 +41,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const isTypingRef = useRef(false);
 
-    // Sync state when external URL params change (only if user isn't actively typing)
+    // Sync state when URL params change from external navigation
     useEffect(() => {
         if (!isTypingRef.current) {
             setSearchInput(urlSearch);
@@ -49,7 +50,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
         setSortBy(urlSort);
     }, [urlSearch, urlCategory, urlSort]);
 
-    // Live search on every keystroke with 200ms debounce
+    // Update URL debounced in the background without causing page flicker
     useEffect(() => {
         if (searchInput === urlSearch) return;
 
@@ -74,18 +75,18 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
 
             const queryString = params.toString();
             router.replace(`/product${queryString ? `?${queryString}` : ""}`, { scroll: false });
-        }, 200);
+        }, 300);
 
         return () => clearTimeout(timer);
     }, [searchInput, urlSearch, selectedCat, sortBy, router]);
 
-    // Fetch products based on active filters
+    // Background data fetch (seamless, does NOT wipe the screen)
     useEffect(() => {
         let isMounted = true;
-        const fetchFilteredProducts = async () => {
-            setIsLoading(true);
+        const fetchServerProducts = async () => {
+            setIsFetchingBackground(true);
             try {
-                let endpoint = "/api/product?limit=100";
+                let endpoint = "/api/product?limit=150";
                 if (urlSearch.trim()) {
                     endpoint += `&search=${encodeURIComponent(urlSearch.trim())}`;
                     trackSearch(urlSearch.trim());
@@ -100,27 +101,43 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                     : res?.products || res?.data?.products || res?.data || [];
 
                 if (isMounted) {
-                    setProducts(items);
+                    if (items.length > 0 || !urlSearch.trim()) {
+                        // Merge products into master set to prevent lost items
+                        setMasterProducts((prev) => {
+                            const map = new Map();
+                            // If searching, prioritize fresh search results
+                            if (urlSearch.trim()) {
+                                items.forEach((p) => p && p.id && map.set(p.id, p));
+                                prev.forEach((p) => p && p.id && !map.has(p.id) && map.set(p.id, p));
+                            } else {
+                                prev.forEach((p) => p && p.id && map.set(p.id, p));
+                                items.forEach((p) => p && p.id && map.set(p.id, p));
+                            }
+                            return Array.from(map.values());
+                        });
+                    }
                     if (items.length > 0) {
                         trackViewItemList(items, urlSearch ? `Search: ${urlSearch}` : 'Product Catalog', 'catalog_grid');
                     }
                 }
             } catch (err) {
                 console.error("Failed to load catalog products:", err);
-                if (isMounted) setProducts([]);
             } finally {
-                if (isMounted) setIsLoading(false);
+                if (isMounted) {
+                    setIsInitialLoading(false);
+                    setIsFetchingBackground(false);
+                }
             }
         };
 
-        fetchFilteredProducts();
+        fetchServerProducts();
 
         return () => {
             isMounted = false;
         };
     }, [urlSearch, urlCategory]);
 
-    // Fetch categories if not passed initially
+    // Fetch categories if needed
     useEffect(() => {
         if (categories.length > 0) return;
         apiClient("/api/categories")
@@ -137,7 +154,13 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
         setIsModalOpen(true);
     };
 
-    // Push new query parameters to URL immediately
+    // Instant local typing handler
+    const handleSearchChange = (val) => {
+        isTypingRef.current = true;
+        setSearchInput(val);
+    };
+
+    // Instant URL parameter push on submit/selection
     const updateUrlParams = (newSearch, newCat, newSort) => {
         isTypingRef.current = false;
         const params = new URLSearchParams();
@@ -153,11 +176,6 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
 
         const queryString = params.toString();
         router.push(`/product${queryString ? `?${queryString}` : ""}`);
-    };
-
-    const handleSearchChange = (val) => {
-        isTypingRef.current = true;
-        setSearchInput(val);
     };
 
     const handleSearchSubmit = (e) => {
@@ -184,11 +202,42 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
         router.push("/product");
     };
 
-    // Client-side sorting
-    const sortedProducts = useMemo(() => {
-        if (!products || !Array.isArray(products)) return [];
-        const list = [...products];
+    // ⚡ INSTANT 0ms In-Memory Filtering & Sorting on every single keystroke
+    const filteredAndSortedProducts = useMemo(() => {
+        if (!masterProducts || !Array.isArray(masterProducts)) return [];
+        let list = [...masterProducts];
 
+        // 1. Instant Category filter
+        const activeCategory = selectedCat !== "All" ? selectedCat : (urlCategory !== "All" ? urlCategory : null);
+        if (activeCategory) {
+            const catLower = activeCategory.toLowerCase();
+            list = list.filter((p) => {
+                const cName = p.subCategory?.category?.name || p.categoryName || p.category?.name || "";
+                const scName = p.subCategory?.name || "";
+                return cName.toLowerCase() === catLower || scName.toLowerCase() === catLower;
+            });
+        }
+
+        // 2. Instant Live Search Filter (Key-by-Key)
+        const activeQuery = (searchInput || "").trim().toLowerCase();
+        if (activeQuery) {
+            list = list.filter((p) => {
+                const name = (p.productName || "").toLowerCase();
+                const sku = (p.sku || "").toLowerCase();
+                const brand = (p.brand?.name || p.brandName || "").toLowerCase();
+                const cat = (p.subCategory?.category?.name || p.categoryName || "").toLowerCase();
+                const desc = (p.description || "").toLowerCase();
+                return (
+                    name.includes(activeQuery) ||
+                    sku.includes(activeQuery) ||
+                    brand.includes(activeQuery) ||
+                    cat.includes(activeQuery) ||
+                    desc.includes(activeQuery)
+                );
+            });
+        }
+
+        // 3. Instant Sorting
         switch (sortBy) {
             case "price-low":
                 return list.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
@@ -202,9 +251,9 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
             default:
                 return list;
         }
-    }, [products, sortBy]);
+    }, [masterProducts, searchInput, selectedCat, urlCategory, sortBy]);
 
-    const activeFilterCount = (urlSearch ? 1 : 0) + (urlCategory && urlCategory !== "All" ? 1 : 0);
+    const activeFilterCount = ((searchInput || urlSearch) ? 1 : 0) + ((selectedCat && selectedCat !== "All") || (urlCategory && urlCategory !== "All") ? 1 : 0);
 
     return (
         <div className="min-h-screen bg-slate-50/50 py-6 sm:py-10">
@@ -215,17 +264,17 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                         <Link href="/" className="hover:text-primary transition">Home</Link>
                         <span>/</span>
                         <Link href="/product" className="hover:text-primary transition">Products</Link>
-                        {urlCategory && urlCategory !== "All" && (
+                        {selectedCat && selectedCat !== "All" && (
                             <>
                                 <span>/</span>
-                                <span className="text-slate-900 font-medium">{urlCategory}</span>
+                                <span className="text-slate-900 font-medium">{selectedCat}</span>
                             </>
                         )}
-                        {urlSearch && (
+                        {searchInput && (
                             <>
                                 <span>/</span>
                                 <span className="text-slate-900 font-medium truncate max-w-[150px]">
-                                    &ldquo;{urlSearch}&rdquo;
+                                    &ldquo;{searchInput}&rdquo;
                                 </span>
                             </>
                         )}
@@ -234,14 +283,10 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                     <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                         <div>
                             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                                {urlSearch ? `Search Results for "${urlSearch}"` : urlCategory && urlCategory !== "All" ? `${urlCategory} Collection` : "All Products"}
+                                {searchInput ? `Search Results for "${searchInput}"` : selectedCat && selectedCat !== "All" ? `${selectedCat} Collection` : "All Products"}
                             </h1>
                             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                                {isLoading ? (
-                                    "Updating search results..."
-                                ) : (
-                                    `Showing ${sortedProducts.length} ${sortedProducts.length === 1 ? "product" : "products"}`
-                                )}
+                                {`Showing ${filteredAndSortedProducts.length} ${filteredAndSortedProducts.length === 1 ? "product" : "products"}`}
                             </p>
                         </div>
 
@@ -253,9 +298,13 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                     value={searchInput}
                                     onChange={(e) => handleSearchChange(e.target.value)}
                                     placeholder="Search by name, SKU, brand..."
-                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 pl-9 text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition shadow-xs"
+                                    className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 pl-9 pr-8 text-xs focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition shadow-xs font-normal"
                                 />
-                                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                {isFetchingBackground ? (
+                                    <Loader2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary animate-spin" />
+                                ) : (
+                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                )}
                                 {searchInput && (
                                     <button
                                         type="button"
@@ -263,7 +312,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                             handleSearchChange("");
                                             updateUrlParams("", selectedCat, sortBy);
                                         }}
-                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                                     >
                                         <X size={13} />
                                     </button>
@@ -290,7 +339,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                             <button
                                 type="button"
                                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                                className="md:hidden bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 flex items-center gap-1.5 shadow-xs"
+                                className="md:hidden bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 flex items-center gap-1.5 shadow-xs cursor-pointer"
                             >
                                 <Filter size={13} />
                                 <span>Filter</span>
@@ -318,7 +367,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                     <button
                                         type="button"
                                         onClick={() => handleCategoryChange("All")}
-                                        className="text-[11px] text-primary font-semibold hover:underline"
+                                        className="text-[11px] text-primary font-semibold hover:underline cursor-pointer"
                                     >
                                         Reset
                                     </button>
@@ -365,31 +414,34 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                     <button
                                         type="button"
                                         onClick={clearAllFilters}
-                                        className="text-[11px] text-red-500 font-semibold hover:underline"
+                                        className="text-[11px] text-red-500 font-semibold hover:underline cursor-pointer"
                                     >
                                         Clear All
                                     </button>
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {urlSearch && (
+                                    {searchInput && (
                                         <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-medium">
-                                            <span>Search: {urlSearch}</span>
+                                            <span>Search: {searchInput}</span>
                                             <button
                                                 type="button"
-                                                onClick={() => updateUrlParams("", selectedCat, sortBy)}
-                                                className="hover:text-red-500"
+                                                onClick={() => {
+                                                    handleSearchChange("");
+                                                    updateUrlParams("", selectedCat, sortBy);
+                                                }}
+                                                className="hover:text-red-500 cursor-pointer"
                                             >
                                                 <X size={12} />
                                             </button>
                                         </span>
                                     )}
-                                    {urlCategory && urlCategory !== "All" && (
+                                    {selectedCat && selectedCat !== "All" && (
                                         <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-xs font-semibold">
-                                            <span>{urlCategory}</span>
+                                            <span>{selectedCat}</span>
                                             <button
                                                 type="button"
                                                 onClick={() => handleCategoryChange("All")}
-                                                className="hover:text-primary-dark"
+                                                className="hover:text-primary-dark cursor-pointer"
                                             >
                                                 <X size={12} />
                                             </button>
@@ -413,7 +465,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                     <button
                                         type="button"
                                         onClick={() => setIsFilterOpen(false)}
-                                        className="p-1 rounded-full hover:bg-slate-100 text-slate-500"
+                                        className="p-1 rounded-full hover:bg-slate-100 text-slate-500 cursor-pointer"
                                     >
                                         <X size={18} />
                                     </button>
@@ -443,7 +495,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                             <button
                                                 type="button"
                                                 onClick={() => handleCategoryChange("All")}
-                                                className={`w-full px-3 py-2 rounded-xl text-left text-xs flex items-center justify-between ${
+                                                className={`w-full px-3 py-2 rounded-xl text-left text-xs flex items-center justify-between cursor-pointer ${
                                                     selectedCat === "All" ? "bg-primary text-white font-bold" : "text-slate-700 hover:bg-slate-50"
                                                 }`}
                                             >
@@ -455,7 +507,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                                     key={cat.id || cat.name}
                                                     type="button"
                                                     onClick={() => handleCategoryChange(cat.name)}
-                                                    className={`w-full px-3 py-2 rounded-xl text-left text-xs flex items-center justify-between ${
+                                                    className={`w-full px-3 py-2 rounded-xl text-left text-xs flex items-center justify-between cursor-pointer ${
                                                         selectedCat === cat.name ? "bg-primary text-white font-bold" : "text-slate-700 hover:bg-slate-50"
                                                     }`}
                                                 >
@@ -471,7 +523,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                     <button
                                         type="button"
                                         onClick={clearAllFilters}
-                                        className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                        className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
                                     >
                                         Reset All
                                     </button>
@@ -481,7 +533,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                             updateUrlParams(searchInput, selectedCat, sortBy);
                                             setIsFilterOpen(false);
                                         }}
-                                        className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary/90 shadow-sm"
+                                        className="flex-1 py-2.5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary/90 shadow-sm cursor-pointer"
                                     >
                                         Apply Filters
                                     </button>
@@ -492,15 +544,15 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
 
                     {/* Products Grid / Results Area */}
                     <div className="col-span-1 md:col-span-3 lg:col-span-4">
-                        {isLoading ? (
+                        {isInitialLoading && masterProducts.length === 0 ? (
                             <div className="bg-white rounded-2xl border border-slate-200/80 p-16 flex flex-col items-center justify-center text-center shadow-xs">
                                 <Loader2 size={32} className="animate-spin text-primary mb-3" />
-                                <h3 className="text-sm font-bold text-slate-800">Loading catalog products...</h3>
+                                <h3 className="text-sm font-bold text-slate-800">Loading catalog...</h3>
                                 <p className="text-xs text-slate-400 mt-1">Please wait a moment.</p>
                             </div>
-                        ) : sortedProducts.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
-                                {sortedProducts.map((product) => (
+                        ) : filteredAndSortedProducts.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4 transition-all duration-200">
+                                {filteredAndSortedProducts.map((product) => (
                                     <ProductCard
                                         key={product.id}
                                         product={product}
@@ -517,14 +569,14 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                     No products found
                                 </h2>
                                 <p className="text-xs sm:text-sm text-slate-500 max-w-md mt-1 mb-6">
-                                    {urlSearch
-                                        ? `We couldn't find any products matching "${urlSearch}". Try checking for spelling errors or searching with more general terms.`
+                                    {searchInput
+                                        ? `We couldn't find any products matching "${searchInput}". Try checking for spelling errors or searching with more general terms.`
                                         : "There are currently no products available in this selection."}
                                 </p>
                                 <button
                                     type="button"
                                     onClick={clearAllFilters}
-                                    className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-full text-xs font-semibold transition shadow-sm"
+                                    className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-full text-xs font-semibold transition shadow-sm cursor-pointer active:scale-95"
                                 >
                                     Browse All Products
                                 </button>

@@ -35,6 +35,7 @@ import {
 import { toast } from "react-hot-toast";
 import { apiClient } from "@/lib/apiClient";
 import { trackBeginCheckout, trackPurchase } from "@/utils/dataLayer";
+import { getVariantColorInfo, getVariantDisplayLabel } from "@/lib/variantHelpers";
 
 export default function LandingCheckoutSection({ 
     landingPage,
@@ -117,14 +118,7 @@ export default function LandingCheckoutSection({
         }
     }, [grandTotal, onPriceChange]);
 
-    const getVariantLabel = (v) => {
-        if (!v) return "";
-        if (v.attributes && typeof v.attributes === "object") {
-            const vals = Object.values(v.attributes).filter(Boolean);
-            if (vals.length > 0) return vals.join(" - ");
-        }
-        return [v.color, v.size].filter(Boolean).join(" - ") || `ভ্যারিয়েন্ট #${v.id}`;
-    };
+    const getVariantLabel = (v) => getVariantDisplayLabel(v);
 
     // Helper to gather all distinct images from a product and its variants
     const getAllProductImages = (prod) => {
@@ -634,6 +628,7 @@ export default function LandingCheckoutSection({
                                         <div className="flex flex-wrap gap-2">
                                             {variants.map((v) => {
                                                 const label = getVariantLabel(v);
+                                                const colorInfo = getVariantColorInfo(v);
                                                 const isSel = selectedVariant?.id === v.id;
                                                 const vRaw = parseFloat(v.price || 0);
                                                 const vDisc = parseFloat(variantDiscounts[v.id] || variantDiscounts[String(v.id)] || 0);
@@ -650,7 +645,7 @@ export default function LandingCheckoutSection({
                                                                 : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
                                                         }`}
                                                     >
-                                                        {v.image && (
+                                                        {v.image ? (
                                                             <div 
                                                                 className="w-4 h-4 rounded-full overflow-hidden relative shrink-0 border border-white/50 hover:scale-125 transition"
                                                                 title="ছবি বড় করে দেখুন"
@@ -661,7 +656,12 @@ export default function LandingCheckoutSection({
                                                             >
                                                                 <Image src={v.image} alt={label} fill className="object-cover" unoptimized={v.image.startsWith("http")} />
                                                             </div>
-                                                        )}
+                                                        ) : colorInfo.hasColor ? (
+                                                            <span
+                                                                className="w-3.5 h-3.5 rounded-full border border-black/20 shadow-xs shrink-0 inline-block"
+                                                                style={{ backgroundColor: colorInfo.colorValue }}
+                                                            />
+                                                        ) : null}
                                                         <span>{label}</span>
                                                         <span className={`text-[10px] font-hind px-1 rounded ${
                                                             isSel ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
@@ -811,6 +811,7 @@ export default function LandingCheckoutSection({
                                                             {bumpVariants.map((v) => {
                                                                 const isSelected = selectedBumpVariant?.id === v.id;
                                                                 const label = getVariantLabel(v);
+                                                                const colorInfo = getVariantColorInfo(v);
                                                                 return (
                                                                     <button
                                                                         key={v.id}
@@ -825,13 +826,18 @@ export default function LandingCheckoutSection({
                                                                                 : "bg-white text-slate-700 border-slate-300 hover:border-primary/50"
                                                                         }`}
                                                                     >
-                                                                        {v.image && (
+                                                                        {v.image ? (
                                                                             <img
                                                                                 src={v.image}
                                                                                 alt={label}
                                                                                 className="w-3.5 h-3.5 rounded object-cover"
                                                                             />
-                                                                        )}
+                                                                        ) : colorInfo.hasColor ? (
+                                                                            <span
+                                                                                className="w-3 h-3 rounded-full border border-black/20 shrink-0 inline-block"
+                                                                                style={{ backgroundColor: colorInfo.colorValue }}
+                                                                            />
+                                                                        ) : null}
                                                                         <span>{label}</span>
                                                                         {v.price && (
                                                                             <span className={`text-[9px] ${isSelected ? "text-amber-200" : "text-slate-400"}`}>

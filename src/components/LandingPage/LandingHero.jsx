@@ -6,15 +6,16 @@ import {
     ShoppingBag, 
     Star, 
     Check, 
-    Flame,
-    Sparkles,
-    ArrowDown,
-    CheckCircle2,
-    Play,
-    Video,
-    Timer,
-    Clock
+    Flame, 
+    Sparkles, 
+    ArrowDown, 
+    CheckCircle2, 
+    Play, 
+    Video, 
+    Timer, 
+    Clock 
 } from "lucide-react";
+import { getVariantColorInfo, getVariantDisplayLabel } from "@/lib/variantHelpers";
 
 export default function LandingHero({ 
     landingPage, 
@@ -55,14 +56,7 @@ export default function LandingHero({
         : 0;
 
     // Helper to format attribute label
-    const getVariantLabel = (v) => {
-        if (!v) return "";
-        if (v.attributes && typeof v.attributes === "object") {
-            const vals = Object.values(v.attributes).filter(Boolean);
-            if (vals.length > 0) return vals.join(" - ");
-        }
-        return [v.color, v.size].filter(Boolean).join(" - ") || `ভ্যারিয়েন্ট #${v.id}`;
-    };
+    const getVariantLabel = (v) => getVariantDisplayLabel(v);
 
     // Bengali digits converter helper
     const toBengaliNumber = (num) => {
@@ -386,7 +380,8 @@ export default function LandingHero({
                                 <div className="flex flex-wrap gap-2">
                                     {variants.map((v) => {
                                         const isSel = selectedVariant?.id === v.id;
-                                        const label = getVariantLabel(v);
+                                        const label = getVariantDisplayLabel(v);
+                                        const colorInfo = getVariantColorInfo(v);
                                         const vRawPrice = parseFloat(v.price || 0);
                                         const vDiscount = parseFloat(variantDiscounts[v.id] || variantDiscounts[String(v.id)] || 0);
                                         const vEffectivePrice = Math.max(0, vRawPrice - vDiscount);
@@ -401,15 +396,37 @@ export default function LandingHero({
                                                 }}
                                                 className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer flex items-center gap-2 ${
                                                     isSel
-                                                        ? "border-primary bg-primary text-white shadow-xs scale-105"
-                                                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                                                        ? "border-primary bg-primary text-white shadow-xs scale-105 ring-2 ring-primary/20"
+                                                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                                                 }`}
                                             >
-                                                {v.image && (
+                                                {/* 1. Variant Thumbnail Image */}
+                                                {v.image ? (
                                                     <div className="w-4 h-4 rounded-full overflow-hidden relative shrink-0 border border-white/50">
                                                         <Image src={v.image} alt={label} fill className="object-cover" unoptimized={v.image.startsWith("http")} />
                                                     </div>
+                                                ) : colorInfo.hasColor ? (
+                                                    /* 2. Visual Color Circle Swatch */
+                                                    <span
+                                                        className={`w-4 h-4 rounded-full shrink-0 border shadow-inner ${
+                                                            isSel ? "border-white ring-1 ring-white/60" : "border-slate-300"
+                                                        }`}
+                                                        style={{ backgroundColor: colorInfo.colorValue }}
+                                                        title={colorInfo.colorName || colorInfo.colorValue}
+                                                    />
+                                                ) : null}
+
+                                                {/* If it has an image AND a color, also show color circle preview */}
+                                                {v.image && colorInfo.hasColor && (
+                                                    <span
+                                                        className={`w-3 h-3 rounded-full shrink-0 border shadow-inner -ml-1 ${
+                                                            isSel ? "border-white ring-1 ring-white/60" : "border-slate-300"
+                                                        }`}
+                                                        style={{ backgroundColor: colorInfo.colorValue }}
+                                                        title={colorInfo.colorName}
+                                                    />
                                                 )}
+
                                                 <span>{label}</span>
                                                 <span className={`text-[10px] font-hind px-1 py-0.2 rounded ${
                                                     isSel ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
@@ -419,7 +436,7 @@ export default function LandingHero({
                                                         <span className="line-through ml-1 opacity-60">৳{vRawPrice.toLocaleString()}</span>
                                                     )}
                                                 </span>
-                                                {isSel && <CheckCircle2 size={12} className="text-white" />}
+                                                {isSel && <CheckCircle2 size={12} className="text-white shrink-0" />}
                                             </button>
                                         );
                                     })}

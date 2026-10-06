@@ -29,7 +29,7 @@ const hindSiliguri = Hind_Siliguri({
 import Script from "next/script";
 import PageTracker from "@/components/Analytics/PageTracker";
 
-const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-N85DC7T3';
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-PN7QTP68';
 
 export const metadata = {
   title: "Ekhone | Authentic Online Shopping in Bangladesh",

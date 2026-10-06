@@ -12,6 +12,7 @@ import Swal from "sweetalert2";
 import { FaShoppingBag } from "react-icons/fa";
 import { useCart } from "@/hooks/useCart";
 import BillingDetails from "@/components/Checkout/BillingDetails";
+import OrderSummary from "@/components/Checkout/OrderSummary";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
 import { 
   trackBeginCheckout, 

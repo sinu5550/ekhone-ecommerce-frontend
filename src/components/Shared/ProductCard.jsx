@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, ShoppingCart, Eye, Zap } from "lucide-react";
+import { Heart, ShoppingCart, Eye, ShoppingBag } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useCart } from "@/hooks/useCart";
 
@@ -105,23 +105,37 @@ export default function ProductCard({ product, onOpenQuickView }) {
     const handleBuyNow = (e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        let targetVariant = null;
         if (isVariantProduct) {
-            // Open modal to choose variant first
-            onOpenQuickView && onOpenQuickView(product);
-            return;
+            targetVariant = product.productVariants?.find(v => v.isDefault) || product.productVariants?.[0] || null;
         }
-        // Direct single product buy now -> checkout
+
+        const baseVariantPrice = targetVariant?.price ? parseFloat(targetVariant.price) : originalPrice;
+        const vFinalPrice = calcDiscount(baseVariantPrice);
+        const vDiscAmt = Math.max(0, baseVariantPrice - vFinalPrice);
+
         const item = {
             ...product,
-            price: discountedPrice,
-            originalPrice: originalPrice,
-            discountAmount: Math.max(0, originalPrice - discountedPrice),
+            price: vFinalPrice,
+            originalPrice: baseVariantPrice,
+            discountAmount: vDiscAmt,
             discountValue: discountValue,
             discountType: product.discountType || product.campaignInfo?.discountType || "Percentage",
             campaignName: product.campaignInfo?.campaignName || null,
             campaignId: product.campaignInfo?.id || product.campaignId || null,
+            ...(targetVariant && {
+                variantId: targetVariant.id,
+                variantAttributes: targetVariant.attributes || targetVariant.variantAttributes || null,
+                variantType: targetVariant.title || targetVariant.name || null,
+                image: targetVariant.image || displayImage,
+                images: targetVariant.image ? [targetVariant.image] : (product.images || [displayImage]),
+                stockQuantity: targetVariant.stockQuantity ?? targetVariant.quantity ?? product.stockQuantity ?? null,
+                productVariants: product.productVariants || [],
+                productType: "variant",
+            }),
         };
-        setBuyNowItem(item, 1);
+        setBuyNowItem(item, 1, targetVariant?.id || null);
         toast.success("Proceeding to checkout...");
         router.push("/checkout");
     };
@@ -267,10 +281,10 @@ export default function ProductCard({ product, onOpenQuickView }) {
                         <button
                             type="button"
                             onClick={handleBuyNow}
-                            className="flex-1 h-8 px-3 rounded-lg bg-primary hover:bg-primary-hover active:scale-95 text-white font-semibold text-xs sm:text-[12.5px] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs animate-shake-x hover:animate-none"
+                            className="flex-1 h-8 px-3 rounded-lg bg-primary hover:bg-primary-hover active:scale-95 text-white font-semibold text-xs sm:text-[12.5px] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs btn-shine relative overflow-hidden"
                         >
-                            <Zap size={13} />
-                            <span>Buy Now</span>
+                            <ShoppingBag size={13} className="relative z-10" />
+                            <span className="relative z-10">Buy Now</span>
                         </button>
                     </div>
 

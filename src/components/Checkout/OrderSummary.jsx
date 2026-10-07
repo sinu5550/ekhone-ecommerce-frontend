@@ -9,6 +9,7 @@ import { FiCheck } from "react-icons/fi";
 import { Trash2, ShoppingBag, Receipt, Truck, Tag, Percent, CreditCard } from "lucide-react";
 import toast from "react-hot-toast";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
+import { isHexColor, getColorName, getVariantColorInfo, getVariantDisplayLabel } from "@/lib/variantHelpers";
 
 const getItemImage = (item) => {
   if (!item) return null;
@@ -56,6 +57,7 @@ const OrderSummary = ({
   placeOrderRef,
   onRemoveItem,
   onUpdateQuantity,
+  onSelectVariant,
   deliveryCharges: externalDeliveryCharges = null,
   renderOnly = null, // 'products' | 'summary' | null
 }) => {
@@ -190,24 +192,91 @@ const OrderSummary = ({
 
   const totals = calculateTotals();
 
-  // Render variant attributes
-  const renderVariantAttributes = (item) => {
-    if (
-      !item.variantAttributes ||
-      Object.keys(item.variantAttributes).length === 0
-    ) {
-      return null;
-    }
+  // Render variant attributes & selector
+  const renderVariantSection = (item) => {
+    const availableVariants = Array.isArray(item.productVariants) && item.productVariants.length > 0
+      ? item.productVariants
+      : (Array.isArray(item.product?.productVariants) ? item.product.productVariants : []);
+
+    const hasMultipleVariants = availableVariants.length > 1;
+
     return (
-      <div className="flex flex-wrap gap-1 mt-1">
-        {Object.entries(item.variantAttributes).map(([key, value]) => (
-          <span
-            key={key}
-            className="text-[11px] bg-orange-50 text-[#F45116] border border-orange-200/60 px-2 py-0.5 rounded font-medium"
-          >
-            {key}: {value}
-          </span>
-        ))}
+      <div className="mt-1.5 space-y-1.5">
+        {/* If multiple variants exist, show clickable swatch/pill selector */}
+        {hasMultipleVariants && onSelectVariant ? (
+          <div className="pt-1">
+            <span className="text-[11px] font-semibold text-slate-700 block mb-1">
+              Select Variant (ভ্যারিয়েন্ট পরিবর্তন করুন):
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {availableVariants.map((v) => {
+                const isSelected = (item.variantId || null) === v.id;
+                const vColorInfo = getVariantColorInfo(v);
+                const vDisplayLabel = getVariantDisplayLabel(v);
+                const vPrice = parseFloat(v.price || 0);
+
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => onSelectVariant(item, v)}
+                    className={`px-2 py-1 rounded-md text-[11px] font-medium border transition cursor-pointer flex items-center gap-1.5 ${
+                      isSelected
+                        ? "bg-[#F45116] text-white border-[#F45116] shadow-xs font-bold"
+                        : "bg-white text-slate-700 border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    {v.image ? (
+                      <img
+                        src={v.image}
+                        alt={vDisplayLabel}
+                        className="w-3.5 h-3.5 rounded object-cover"
+                      />
+                    ) : vColorInfo.hasColor ? (
+                      <span
+                        className="w-3 h-3 rounded-full border border-black/20 shadow-xs shrink-0 inline-block"
+                        style={{ backgroundColor: vColorInfo.colorValue }}
+                      />
+                    ) : null}
+                    <span>{vDisplayLabel}</span>
+                    {vPrice > 0 && (
+                      <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-slate-500"}`}>
+                        (৳{vPrice.toLocaleString()})
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* Single variant or current active variant badge */
+          item.variantAttributes && Object.keys(item.variantAttributes).length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {Object.entries(item.variantAttributes).map(([key, value]) => {
+                const isHex = isHexColor(value);
+                const friendlyValue = isHex ? getColorName(value) : value;
+
+                return (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1.5 text-[11px] bg-orange-50 text-[#F45116] border border-orange-200/60 px-2 py-0.5 rounded font-medium"
+                  >
+                    {isHex && (
+                      <span
+                        className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
+                        style={{ backgroundColor: value }}
+                      />
+                    )}
+                    <span>
+                      {key}: {friendlyValue}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+          )
+        )}
       </div>
     );
   };
@@ -304,7 +373,7 @@ const OrderSummary = ({
                           </button>
                         )}
                       </div>
-                      {renderVariantAttributes(item)}
+                      {renderVariantSection(item)}
                       {item.campaignName && (
                         <div className="flex items-center gap-1.5 flex-wrap mt-1">
                           <span className="inline-block text-[10px] bg-orange-100 text-[#F45116] px-2 py-0.5 rounded-md font-medium">

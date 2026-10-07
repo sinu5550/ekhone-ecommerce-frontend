@@ -74,6 +74,7 @@ export const useCart = () => {
                     variantType: product.variantType,
                     productType: "variant",
                 }),
+                productVariants: product.productVariants || [],
             };
 
             if (existingIndex > -1) {
@@ -125,6 +126,7 @@ export const useCart = () => {
                     variantType: product.variantType,
                     productType: "variant",
                 }),
+                productVariants: product.productVariants || [],
             };
             localStorage.setItem(BUY_NOW_KEY, JSON.stringify(buyNowItem));
             return true;

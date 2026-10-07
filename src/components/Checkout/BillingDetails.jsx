@@ -398,10 +398,10 @@ const BillingDetails = ({
         recipientName: recipientName,
         phoneNumber: phoneNumber,
         address: formData.address.trim(),
-        upazila: formData.upazila,
-        district: formData.district,
-        division: formData.division,
-        city: formData.city?.trim() || formData.division,
+        upazila: formData.upazila || formData.district || "Dhaka",
+        district: formData.district || formData.division || "Dhaka",
+        division: formData.division || "Dhaka",
+        city: formData.city?.trim() || formData.division || "Dhaka",
         postalCode: formData.postalCode?.trim() || "1200",
         country: "Bangladesh",
         isDefault: formData.isDefault !== undefined ? formData.isDefault : true,
@@ -905,117 +905,20 @@ const BillingDetails = ({
 
           <div className="space-y-4 mb-6">
             <input type="hidden" {...register("country")} value="Bangladesh" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 text-xs md:text-sm">
-              {/* Division */}
-              <div>
-                <label className="block mb-1 font-medium text-xs md:text-sm text-gray-900">
-                  Division <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register("division", {
-                    required: "Division is required",
-                  })}
-                  value={watchDivision || ""}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setValue("division", val, { shouldValidate: true });
-                    setValue("district", "");
-                    setValue("upazila", "");
-                  }}
-                  className="w-full text-xs md:text-sm font-normal text-gray-800 px-2.5 md:px-3 py-2 md:py-2.5 h-10 md:h-11 border border-gray-200 rounded-[8px] focus:outline-none focus:ring-1 focus:ring-[#F45116] focus:border-[#F45116] transition-all cursor-pointer bg-white truncate"
-                >
-                  <option value="">Select Division</option>
-                  {divisions.map((division) => (
-                    <option key={division.id} value={division.name}>
-                      {division.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.division && (
-                  <p className="text-red-500 text-xs md:text-sm mt-1">
-                    {errors.division.message}
-                  </p>
-                )}
-              </div>
-
-              {/* District */}
-              <div>
-                <label className="block mb-1 font-medium text-xs md:text-sm text-gray-900">
-                  District <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register("district", {
-                    required: "District is required",
-                  })}
-                  value={watchDistrict || ""}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setValue("district", val, { shouldValidate: true });
-                    setValue("upazila", "");
-                  }}
-                  className="w-full text-xs md:text-sm font-normal text-gray-800 px-2.5 md:px-3 py-2 md:py-2.5 h-10 md:h-11 border border-gray-200 rounded-[8px] focus:outline-none focus:ring-1 focus:ring-[#F45116] focus:border-[#F45116] transition-all disabled:bg-gray-100 disabled:text-gray-400 cursor-pointer bg-white truncate"
-                  disabled={!watchDivision}
-                >
-                  <option value="">
-                    {watchDivision ? "Select District" : "Select Division"}
-                  </option>
-                  {filteredDistricts.map((district) => (
-                    <option key={district.id} value={district.name}>
-                      {district.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.district && (
-                  <p className="text-red-500 text-xs md:text-sm mt-1">
-                    {errors.district.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Upazila / Thana */}
-              <div>
-                <label className="block mb-1 font-medium text-xs md:text-sm text-gray-900">
-                  Upazila / Thana <span className="text-red-500">*</span>
-                </label>
-                <select
-                  {...register("upazila", { required: "Upazila is required" })}
-                  value={watch("upazila") || ""}
-                  onChange={(e) => {
-                    setValue("upazila", e.target.value, { shouldValidate: true });
-                  }}
-                  className="w-full text-xs md:text-sm font-normal text-gray-800 px-2.5 md:px-3 py-2 md:py-2.5 h-10 md:h-11 border border-gray-200 rounded-[8px] focus:outline-none focus:ring-1 focus:ring-[#F45116] focus:border-[#F45116] transition-all disabled:bg-gray-100 disabled:text-gray-400 cursor-pointer bg-white truncate"
-                  disabled={!watchDistrict}
-                >
-                  <option value="">
-                    {watchDistrict
-                      ? "Select Upazila / Thana"
-                      : "Select District First"}
-                  </option>
-                  {filteredUpazilas.map((upazila) => (
-                    <option key={upazila.id} value={upazila.name}>
-                      {upazila.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.upazila && (
-                  <p className="text-red-500 text-xs md:text-sm mt-1">
-                    {errors.upazila.message}
-                  </p>
-                )}
-              </div>
-            </div>
+            <input type="hidden" {...register("division")} value={watchDivision || "Dhaka"} />
+            <input type="hidden" {...register("district")} value={watchDistrict || "Dhaka"} />
+            <input type="hidden" {...register("upazila")} value={watchUpazila || "Dhaka"} />
 
             <div>
               <label className="block mb-1 font-medium text-xs md:text-sm text-gray-900">
-                Street Address <span className="text-red-500">*</span>
+                Full Street Address (সম্পূর্ণ ঠিকানা) <span className="text-red-500">*</span>
               </label>
               <textarea
                 {...register("address", {
                   required: "Address is required",
-                  minLength: { value: 6, message: "Please provide a detailed address" },
+                  minLength: { value: 6, message: "Please provide a detailed street address" },
                 })}
-                placeholder="House No, Road No, Sector/Area, Village..."
+                placeholder="বাসা/হোল্ডিং নম্বর, রোড/সেক্টর, থানা, জেলা (e.g. Block E, Road 2, Sector 3, House 13-15, Aftabnagar, Dhaka)"
                 className="w-full text-xs md:text-sm placeholder:text-xs md:placeholder:text-sm px-3 md:px-4 py-2.5 border border-gray-200 rounded-[8px] focus:outline-none focus:ring-1 focus:ring-[#F45116] focus:border-[#F45116] transition-all h-20 md:h-24 bg-white text-gray-900"
                 rows={3}
               />

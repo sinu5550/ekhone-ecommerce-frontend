@@ -128,6 +128,7 @@ export default function ProductCard({ product, onOpenQuickView }) {
                 variantId: targetVariant.id,
                 variantAttributes: targetVariant.attributes || targetVariant.variantAttributes || null,
                 variantType: targetVariant.title || targetVariant.name || null,
+                sku: targetVariant.sku || product.sku,
                 image: targetVariant.image || displayImage,
                 images: targetVariant.image ? [targetVariant.image] : (product.images || [displayImage]),
                 stockQuantity: targetVariant.stockQuantity ?? targetVariant.quantity ?? product.stockQuantity ?? null,

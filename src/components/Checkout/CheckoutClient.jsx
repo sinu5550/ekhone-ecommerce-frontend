@@ -14,6 +14,7 @@ import { useCart } from "@/hooks/useCart";
 import BillingDetails from "@/components/Checkout/BillingDetails";
 import OrderSummary from "@/components/Checkout/OrderSummary";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
+import { getVariantDisplayLabel } from "@/lib/variantHelpers";
 import { 
   trackBeginCheckout, 
   trackAddShippingInfo, 
@@ -205,6 +206,7 @@ export default function CheckoutClient({ initialContact = null }) {
         variantId: newVariant.id,
         variantAttributes: newVariant.attributes || newVariant.variantAttributes || null,
         variantType: newVariant.title || newVariant.name || null,
+        sku: newVariant.sku || currentItem.sku,
         price: calculatedPrice,
         originalPrice: baseVariantPrice,
         discountAmount: newDiscAmt,
@@ -297,8 +299,9 @@ export default function CheckoutClient({ initialContact = null }) {
         const lineTotal = unitPrice * quantity;
 
         const variantAttrs = item.variantAttributes || item.attributes || null;
+        const variantLabel = getVariantDisplayLabel({ attributes: variantAttrs, color: item.color, size: item.size }) || null;
         let variantTypeStr =
-          item.variantType || item.variantTitle || item.variantName || null;
+          item.variantType || item.variantTitle || item.variantName || variantLabel || null;
         if (!variantTypeStr && variantAttrs && typeof variantAttrs === "object") {
           variantTypeStr = Object.entries(variantAttrs)
             .map(([k, v]) => `${k}: ${v}`)
@@ -306,11 +309,15 @@ export default function CheckoutClient({ initialContact = null }) {
         }
 
         const variantIdVal = item.variantId ? parseInt(item.variantId) : null;
+        const mainProductName = item.productName || item.name || item.title || "";
+        const formattedProductName = (variantIdVal || variantAttrs) && variantLabel && !mainProductName.toLowerCase().includes(variantLabel.toLowerCase())
+          ? `${mainProductName} - ${variantLabel}`
+          : mainProductName;
 
         const baseItem = {
           productId: productId,
-          productName: item.productName || item.name || item.title || "",
-          name: item.productName || item.name || item.title || "",
+          productName: formattedProductName,
+          name: formattedProductName,
           sku: item.sku || null,
           quantity: quantity,
           unitPrice: unitPrice,

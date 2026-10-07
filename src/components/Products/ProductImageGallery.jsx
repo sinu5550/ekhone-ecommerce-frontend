@@ -35,7 +35,7 @@ export default function ProductImageGallery({ images = [], productName = "" }) {
   return (
     <div className="flex flex-col-reverse md:flex-row gap-3 md:gap-4 items-start w-full">
       {/* Thumbnail Images on Left */}
-      {validImages.length > 1 && (
+      {validImages.length >= 1 && (
         <div className="flex md:flex-col gap-2.5 md:gap-3 overflow-x-auto md:overflow-y-auto md:max-h-[550px] hide-scrollbar shrink-0 w-full md:w-auto">
           {validImages.map((image, index) => (
             <button
@@ -60,9 +60,9 @@ export default function ProductImageGallery({ images = [], productName = "" }) {
         </div>
       )}
 
-      {/* Main Image Container with zoom */}
+      {/* Main Image Container with zoom (1:1 ratio, p-1, matching edge rounding) */}
       <div
-        className={`relative flex-1 w-full aspect-square md:aspect-[4/5] overflow-hidden bg-gray-50 rounded-2xl border border-gray-200 group ${
+        className={`relative flex-1 w-full aspect-square overflow-hidden bg-gray-50 rounded-2xl border border-gray-200 p-1 group ${
           hasImages ? "cursor-pointer md:cursor-crosshair" : "flex items-center justify-center"
         }`}
         onMouseMove={hasImages ? handleMouseMove : undefined}
@@ -71,26 +71,26 @@ export default function ProductImageGallery({ images = [], productName = "" }) {
         onClick={handleImageClick}
       >
         {hasImages && currentImage ? (
-          <>
+          <div className="relative w-full h-full rounded-xl sm:rounded-2xl overflow-hidden">
             <Image
               src={currentImage}
               alt={`${productName} - Image ${selectedImage + 1}`}
               fill
               priority
               sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover transition-transform duration-300 ease-out"
+              className="object-cover rounded-xl sm:rounded-2xl transition-transform duration-300 ease-out"
               style={{
                 transform: isZoomed ? "scale(1.6)" : "scale(1)",
                 transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`,
               }}
             />
 
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300 pointer-events-none" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-all duration-300 pointer-events-none rounded-xl sm:rounded-2xl" />
 
-            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-2.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 hidden md:block">
+            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 hidden md:block z-10">
               <FaSearchPlus className="text-gray-700 text-sm" />
             </div>
-          </>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center p-6 text-center text-gray-400 space-y-2 select-none">
             <svg className="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -193,6 +193,23 @@ export const useCart = () => {
         return cart.reduce((total, item) => total + (item.quantity || 1), 0);
     }, [cart]);
 
+    const getCartTotal = useCallback(() => {
+        return cart.reduce((total, item) => {
+            const price = parseFloat(item.price || 0);
+            const qty = item.quantity || 1;
+            return total + price * qty;
+        }, 0);
+    }, [cart]);
+
+    const isInCart = useCallback((productId, variantId = null) => {
+        return cart.some(item => {
+            if (variantId && item.variantId) {
+                return (item.productId === productId || item.id === productId) && item.variantId === variantId;
+            }
+            return (item.productId === productId || item.id === productId);
+        });
+    }, [cart]);
+
     return {
         cart,
         loading,
@@ -204,6 +221,8 @@ export const useCart = () => {
         removeFromCart,
         clearCart,
         getCartCount,
+        getCartTotal,
+        isInCart,
         refreshCart: loadCart,
     };
 };

@@ -28,6 +28,8 @@ const hindSiliguri = Hind_Siliguri({
 
 import Script from "next/script";
 import PageTracker from "@/components/Analytics/PageTracker";
+import { CartDrawerProvider } from "@/context/CartDrawerContext";
+import FloatingCart from "@/components/Cart/FloatingCart";
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-PN7QTP68';
 
@@ -115,7 +117,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           />
         </noscript>
         <PageTracker />
-        {children}
+        <CartDrawerProvider>
+          {children}
+          <FloatingCart />
+        </CartDrawerProvider>
         <Toaster position="top-right" />
       </body>
     </html>

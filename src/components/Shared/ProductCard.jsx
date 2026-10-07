@@ -7,13 +7,16 @@ import { useRouter } from "next/navigation";
 import { Heart, ShoppingCart, Eye, ShoppingBag } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useCart } from "@/hooks/useCart";
+import { useWishlist } from "@/hooks/useWishlist";
 
 export default function ProductCard({ product, onOpenQuickView }) {
     const router = useRouter();
     const { addToCart, setBuyNowItem } = useCart();
-    const [isWishlisted, setIsWishlisted] = useState(false);
+    const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
 
     if (!product) return null;
+
+    const isWishlisted = isInWishlist(product.id);
 
     const isVariantProduct = product.productType === "variant" && Array.isArray(product.productVariants) && product.productVariants.length > 0;
 
@@ -69,8 +72,11 @@ export default function ProductCard({ product, onOpenQuickView }) {
     const toggleWishlist = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsWishlisted(prev => !prev);
-        toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
+        if (isWishlisted) {
+            removeFromWishlist(product.id);
+        } else {
+            addToWishlist(product);
+        }
     };
 
     // Add to cart handler

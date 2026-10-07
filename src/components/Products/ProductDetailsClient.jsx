@@ -13,6 +13,7 @@ import VariantSelector from "./VariantSelector";
 import Container from "@/components/Shared/Container";
 import toast from "react-hot-toast";
 import { useCart } from "@/hooks/useCart";
+import { useWishlist } from "@/hooks/useWishlist";
 import { useContact } from "@/lib/dataFetch";
 import {
   calculateVariantPrice,
@@ -26,14 +27,16 @@ export default function ProductDetailsClient({
 }) {
   const router = useRouter();
   const { addToCart, setBuyNowItem } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { contactData } = useContact();
 
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedAttributes, setSelectedAttributes] = useState({});
   const [buyNowLoading, setBuyNowLoading] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [isInCart, setIsInCart] = useState(false);
+
+  const isWishlisted = isInWishlist(product?.id);
 
   const getAllProductImages = () => {
     const baseImages = Array.isArray(product?.images) ? product.images : [];
@@ -272,10 +275,35 @@ export default function ProductDetailsClient({
               )}
             </div>
 
-            {/* Product Name */}
-            <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 leading-tight">
-              {product.productName}
-            </h1>
+            {/* Product Name & Wishlist button */}
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 leading-tight">
+                {product.productName}
+              </h1>
+              <button
+                type="button"
+                onClick={() => {
+                  if (isWishlisted) {
+                    removeFromWishlist(product.id);
+                  } else {
+                    addToWishlist(product);
+                  }
+                }}
+                title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+                className={`p-2.5 rounded-full border transition-all cursor-pointer shrink-0 ${
+                  isWishlisted
+                    ? "bg-rose-50 border-rose-200 text-rose-500 shadow-xs"
+                    : "bg-white border-gray-200 text-gray-400 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50/50"
+                }`}
+              >
+                <Heart
+                  size={20}
+                  className={`transition-transform duration-200 ${
+                    isWishlisted ? "fill-rose-500 scale-110" : ""
+                  }`}
+                />
+              </button>
+            </div>
 
             {/* Price & Stock Badge Section */}
             <div className="py-3 border-y border-gray-100 flex items-center gap-3 md:gap-4 flex-wrap">

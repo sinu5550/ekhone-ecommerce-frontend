@@ -38,8 +38,10 @@ export default function RelatedProductsSlider({ relatedProducts = [] }) {
     useEffect(() => {
         const handleResize = () => {
             if (window.innerWidth >= 1024) {
-                setItemsPerPage(4);
+                setItemsPerPage(5);
             } else if (window.innerWidth >= 768) {
+                setItemsPerPage(4);
+            } else if (window.innerWidth >= 640) {
                 setItemsPerPage(3);
             } else {
                 setItemsPerPage(2);
@@ -95,9 +97,9 @@ export default function RelatedProductsSlider({ relatedProducts = [] }) {
                 )}
             </div>
 
-            <div className="relative group">
+            <div className="relative">
                 <div
-                    className="overflow-hidden"
+                    className="overflow-hidden py-2 pb-4 -mb-4 -mx-1 px-1"
                     onTouchStart={onTouchStart}
                     onTouchMove={onTouchMove}
                     onTouchEnd={onTouchEnd}
@@ -111,7 +113,7 @@ export default function RelatedProductsSlider({ relatedProducts = [] }) {
                         {visibleRelatedProducts.map((relatedProduct) => (
                             <div
                                 key={relatedProduct.id}
-                                className="shrink-0 pr-3 md:pr-4"
+                                className="shrink-0 pr-3.5 sm:pr-4"
                                 style={{ width: `${100 / itemsPerPage}%` }}
                             >
                                 <ProductCard

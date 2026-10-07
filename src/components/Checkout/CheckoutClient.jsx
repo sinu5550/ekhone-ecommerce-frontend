@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { FaShoppingBag } from "react-icons/fa";
 import { useCart } from "@/hooks/useCart";
+import { useCartDrawer } from "@/context/CartDrawerContext";
 import BillingDetails from "@/components/Checkout/BillingDetails";
 import OrderSummary from "@/components/Checkout/OrderSummary";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
@@ -24,6 +25,7 @@ import {
 
 export default function CheckoutClient({ initialContact = null }) {
   const router = useRouter();
+  const { openCartDrawer } = useCartDrawer();
   const {
     cart,
     loading: cartLoading,
@@ -509,12 +511,13 @@ export default function CheckoutClient({ initialContact = null }) {
             Home <IoIosArrowForward size={12} />
           </Link>
           {!isBuyNow && (
-            <Link
-              href="/cart"
-              className="hover:underline hover:text-[#F45116] flex items-center gap-1 transition cursor-pointer"
+            <button
+              type="button"
+              onClick={openCartDrawer}
+              className="hover:underline hover:text-[#F45116] flex items-center gap-1 transition cursor-pointer text-gray-500"
             >
               Cart <IoIosArrowForward size={12} />
-            </Link>
+            </button>
           )}
           <p className="font-bold text-gray-900">Checkout</p>
         </div>

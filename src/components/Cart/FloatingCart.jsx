@@ -26,7 +26,10 @@ export default function FloatingCart() {
         moved: false,
     });
 
-    const isCartOrCheckout = pathname === '/cart' || pathname === '/checkout';
+    const isHidden = 
+        pathname === '/cart' || 
+        pathname === '/checkout' || 
+        pathname?.startsWith('/landing');
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -120,7 +123,7 @@ export default function FloatingCart() {
         openCartDrawer();
     };
 
-    if (isCartOrCheckout) return null;
+    if (isHidden) return null;
 
     return (
         <div

@@ -189,23 +189,13 @@ export default function CartSliderDrawer({ isOpen, onClose }) {
                             Shipping and discounts will be calculated at checkout.
                         </p>
 
-                        <div className="grid grid-cols-2 gap-2.5 pt-1">
-                            <button
-                                onClick={() => {
-                                    onClose();
-                                    router.push('/cart');
-                                }}
-                                className="py-3 px-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-800 text-xs font-bold transition-all text-center cursor-pointer"
-                            >
-                                View Cart
-                            </button>
-
+                        <div className="pt-1">
                             <button
                                 onClick={handleCheckout}
-                                className="py-3 px-3 rounded-xl bg-[#F45116] hover:bg-[#D9400B] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-[#F45116]/20 active:scale-98 cursor-pointer"
+                                className="w-full py-3.5 px-4 rounded-xl bg-[#F45116] hover:bg-[#D9400B] text-white text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md shadow-[#F45116]/25 active:scale-98 cursor-pointer"
                             >
-                                <span>Checkout</span>
-                                <ArrowRight size={14} />
+                                <span>Proceed to Checkout</span>
+                                <ArrowRight size={16} />
                             </button>
                         </div>
                     </div>

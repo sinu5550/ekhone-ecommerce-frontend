@@ -175,7 +175,7 @@ export default function ProductDetailsClient({
       setBuyNowItem(item, quantity, selectedVariant?.id || null);
       toast.success("Proceeding to checkout...");
       setTimeout(() => {
-        router.push("/checkout");
+        router.push("/checkout?buyNow=true");
       }, 300);
     } catch (err) {
       toast.error("Failed to proceed with Buy Now");

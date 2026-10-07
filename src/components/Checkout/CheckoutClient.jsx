@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { IoIosArrowForward } from "react-icons/io";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Swal from "sweetalert2";
 import { FaShoppingBag } from "react-icons/fa";
 import { useCart } from "@/hooks/useCart";
@@ -25,6 +25,8 @@ import {
 
 export default function CheckoutClient({ initialContact = null }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDirectBuyNow = searchParams?.get("buyNow") === "true";
   const { openCartDrawer } = useCartDrawer();
   const {
     cart,
@@ -75,19 +77,22 @@ export default function CheckoutClient({ initialContact = null }) {
     if (cartLoading) return;
 
     const buyNow = getBuyNowItem();
-    if (buyNow && (buyNow.productId || buyNow.id)) {
+    // Only treat as Buy Now if explicitly direct buy now OR cart is completely empty
+    if (isDirectBuyNow && buyNow && (buyNow.productId || buyNow.id)) {
       setIsBuyNow(true);
       setCheckoutItems([buyNow]);
       trackBeginCheckout([buyNow]);
     } else {
+      // Cart checkout: load ALL items currently in the cart
       setIsBuyNow(false);
-      setCheckoutItems(cart || []);
-      if (cart && cart.length > 0) {
-        trackBeginCheckout(cart);
+      const items = Array.isArray(cart) ? cart : [];
+      setCheckoutItems(items);
+      if (items.length > 0) {
+        trackBeginCheckout(items);
       }
     }
     setIsLoaded(true);
-  }, [cartLoading, cart, getBuyNowItem]);
+  }, [cartLoading, cart, getBuyNowItem, isDirectBuyNow]);
 
   const getCheckoutTotal = useCallback(() => {
     return checkoutItems.reduce((total, item) => {

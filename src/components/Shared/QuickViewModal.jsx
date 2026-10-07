@@ -191,7 +191,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
     setBuyNowItem(item, quantity, selectedVariant?.id);
     toast.success("Proceeding to checkout...");
     onClose();
-    router.push("/checkout");
+    router.push("/checkout?buyNow=true");
   };
 
   return (

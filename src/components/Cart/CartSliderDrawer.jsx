@@ -10,7 +10,7 @@ import { formatPrice } from '@/lib/variantHelpers';
 
 export default function CartSliderDrawer({ isOpen, onClose }) {
     const router = useRouter();
-    const { cart, updateQuantity, removeFromCart, getCartTotal, getCartCount } = useCart();
+    const { cart, updateQuantity, removeFromCart, getCartTotal, getCartCount, clearBuyNowItem } = useCart();
 
     const total = getCartTotal();
     const count = getCartCount();
@@ -48,6 +48,10 @@ export default function CartSliderDrawer({ isOpen, onClose }) {
     }, [isOpen, onClose]);
 
     const handleCheckout = () => {
+        // Clear any previous single "Buy Now" product so checkout always loads all cart items
+        try {
+            clearBuyNowItem();
+        } catch (_) {}
         onClose();
         router.push('/checkout');
     };

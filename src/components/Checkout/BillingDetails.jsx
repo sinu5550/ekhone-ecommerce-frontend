@@ -398,11 +398,11 @@ const BillingDetails = ({
         recipientName: recipientName,
         phoneNumber: phoneNumber,
         address: formData.address.trim(),
-        upazila: formData.upazila || formData.district || "Dhaka",
-        district: formData.district || formData.division || "Dhaka",
-        division: formData.division || "Dhaka",
-        city: formData.city?.trim() || formData.division || "Dhaka",
-        postalCode: formData.postalCode?.trim() || "1200",
+        upazila: formData.upazila || "",
+        district: formData.district || "",
+        division: formData.division || "",
+        city: formData.city?.trim() || "",
+        postalCode: formData.postalCode?.trim() || "",
         country: "Bangladesh",
         isDefault: formData.isDefault !== undefined ? formData.isDefault : true,
         type: formData.type || "Home",
@@ -732,13 +732,18 @@ const BillingDetails = ({
                   <p className="text-gray-600 text-sm">
                     📍 {addresses.find((a) => a.id === selectedAddress).address}
                   </p>
-                  <p className="text-gray-600 text-sm">
-                    {addresses.find((a) => a.id === selectedAddress).upazila},{" "}
-                    {addresses.find((a) => a.id === selectedAddress).district}
-                  </p>
-                  <p className="text-gray-600 text-sm">
-                    {addresses.find((a) => a.id === selectedAddress).division}
-                  </p>
+                  {(() => {
+                    const sel = addresses.find((a) => a.id === selectedAddress);
+                    const cityUpazila = [sel.upazila, sel.district].filter(Boolean).join(", ");
+                    return (
+                      <>
+                        {cityUpazila && <p className="text-gray-600 text-sm">{cityUpazila}</p>}
+                        {sel.division && sel.division !== sel.district && (
+                          <p className="text-gray-600 text-sm">{sel.division}</p>
+                        )}
+                      </>
+                    );
+                  })()}
                   <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-gray-100 rounded-full text-xs">
                     {getIcon(
                       addresses.find((a) => a.id === selectedAddress).type
@@ -905,9 +910,9 @@ const BillingDetails = ({
 
           <div className="space-y-4 mb-6">
             <input type="hidden" {...register("country")} value="Bangladesh" />
-            <input type="hidden" {...register("division")} value={watchDivision || "Dhaka"} />
-            <input type="hidden" {...register("district")} value={watchDistrict || "Dhaka"} />
-            <input type="hidden" {...register("upazila")} value={watchUpazila || "Dhaka"} />
+            <input type="hidden" {...register("division")} value={watchDivision || ""} />
+            <input type="hidden" {...register("district")} value={watchDistrict || ""} />
+            <input type="hidden" {...register("upazila")} value={watchUpazila || ""} />
 
             <div>
               <label className="block mb-1 font-medium text-xs md:text-sm text-gray-900">
@@ -918,8 +923,8 @@ const BillingDetails = ({
                   required: "Address is required",
                   minLength: { value: 6, message: "Please provide a detailed street address" },
                 })}
-                placeholder="বাসা/হোল্ডিং নম্বর, রোড/সেক্টর, থানা, জেলা (e.g. Block E, Road 2, Sector 3, House 13-15, Aftabnagar, Dhaka)"
-                className="w-full text-xs md:text-sm placeholder:text-xs md:placeholder:text-sm px-3 md:px-4 py-2.5 border border-gray-200 rounded-[8px] focus:outline-none focus:ring-1 focus:ring-[#F45116] focus:border-[#F45116] transition-all h-20 md:h-24 bg-white text-gray-900"
+                placeholder="বাসা/হোল্ডিং নম্বর, রোড/সেক্টর, থানা, জেলা (e.g. Block #D, Road #2, Sector #10, House #15, Uttara, Dhaka)"
+                className="w-full text-xs md:text-sm placeholder:text-xs md:placeholder:text-sm px-3 md:px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F45116] focus:border-[#F45116] transition-all h-20 md:h-24 bg-white text-gray-900"
                 rows={3}
               />
               {errors.address && (

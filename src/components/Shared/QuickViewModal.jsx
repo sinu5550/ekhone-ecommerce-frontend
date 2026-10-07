@@ -15,6 +15,7 @@ import {
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/hooks/useCart";
+import { useCartDrawer } from "@/context/CartDrawerContext";
 import {
   extractVariantOptions,
   findMatchingVariant,
@@ -24,6 +25,7 @@ import {
 export default function QuickViewModal({ product, isOpen, onClose }) {
   const router = useRouter();
   const { addToCart, setBuyNowItem } = useCart();
+  const { openCartDrawer } = useCartDrawer();
 
   const [selectedAttributes, setSelectedAttributes] = useState({});
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -155,6 +157,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
     };
     addToCart(item, quantity, selectedVariant?.id);
     onClose();
+    openCartDrawer();
   };
 
   // Buy Now -> Redirect to Checkout
@@ -374,23 +377,25 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
             </div>
 
             {/* Action Buttons */}
-            <div className="pt-5 mt-4 border-t border-slate-100 flex flex-col sm:flex-row gap-2.5">
-              {/* <button
-                                onClick={handleAddToCart}
-                                disabled={!isAvailable}
-                                className="flex-1 py-2.5 px-3 rounded-xl border border-primary text-primary hover:bg-primary/5 font-semibold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-40"
-                            >
-                                <ShoppingCart size={15} />
-                                <span>Add to Cart</span>
-                            </button> */}
+            <div className="pt-4 mt-3 border-t border-slate-100 flex flex-col sm:flex-row gap-2.5">
               <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={!isAvailable}
+                className="flex-1 py-2.5 px-3.5 rounded-xl border border-[#F45116] text-[#F45116] bg-white hover:bg-[#F45116]/5 font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-xs active:scale-98"
+              >
+                <ShoppingCart size={16} />
+                <span>Add to Cart</span>
+              </button>
+              <button
+                type="button"
                 onClick={handleProceedCheckout}
                 disabled={!isAvailable}
-                className="flex-1 py-2.5 px-3 rounded-lg bg-primary hover:bg-primary-hover text-white font-semibold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-40 group "
+                className="flex-1 py-2.5 px-3.5 rounded-xl bg-[#F45116] hover:bg-[#D9400B] text-white font-bold text-xs sm:text-sm shadow-md shadow-[#F45116]/20 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed group active:scale-98"
               >
-                <span>Proceed to Checkout</span>
+                <span>Buy Now</span>
                 <ArrowRight
-                  size={12}
+                  size={14}
                   className="group-hover:translate-x-0.5 transition-transform shrink-0"
                 />
               </button>

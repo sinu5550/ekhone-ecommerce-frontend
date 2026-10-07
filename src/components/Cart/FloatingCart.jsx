@@ -59,9 +59,10 @@ export default function FloatingCart() {
     }, []);
 
     const onDragStart = (e) => {
-        const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+        if (e.button !== undefined && e.button !== 0) return;
+        const clientY = e.clientY ?? (e.touches && e.touches[0]?.clientY) ?? 0;
         const rect = cartWidgetRef.current?.getBoundingClientRect();
-        const currentTop = rect ? rect.top : (cartTop || window.innerHeight * 0.45);
+        const currentTop = rect ? rect.top : (cartTop ?? window.innerHeight * 0.45);
 
         dragInfoRef.current = {
             isDown: true,
@@ -72,33 +73,46 @@ export default function FloatingCart() {
 
         const onDragMove = (moveEvent) => {
             if (!dragInfoRef.current.isDown) return;
-            const moveY = moveEvent.type.startsWith('touch') ? moveEvent.touches[0].clientY : moveEvent.clientY;
-            const deltaY = moveY - dragInfoRef.current.startY;
+            const currentClientY = moveEvent.clientY ?? (moveEvent.touches && moveEvent.touches[0]?.clientY) ?? 0;
+            const deltaY = currentClientY - dragInfoRef.current.startY;
 
-            if (Math.abs(deltaY) > 4) {
+            if (!dragInfoRef.current.moved && Math.abs(deltaY) > 4) {
                 dragInfoRef.current.moved = true;
-                if (!isDragging) setIsDragging(true);
+                setIsDragging(true);
+            }
 
-                const min = 60;
-                const max = window.innerHeight - 160;
+            if (dragInfoRef.current.moved) {
+                if (moveEvent.cancelable) {
+                    moveEvent.preventDefault();
+                }
+                const height = cartWidgetRef.current?.offsetHeight || 110;
+                const min = 65;
+                const max = window.innerHeight - height - 65;
                 const newTop = Math.max(min, Math.min(max, dragInfoRef.current.startTop + deltaY));
                 setCartTop(newTop);
             }
         };
 
         const onDragEnd = () => {
-            if (!dragInfoRef.current.isDown) return;
-            dragInfoRef.current.isDown = false;
-            setIsDragging(false);
-
-            setCartTop((latest) => {
-                if (latest !== null) {
-                    try {
-                        localStorage.setItem('ekhone_floating_cart_y', latest.toString());
-                    } catch (_) {}
+            if (dragInfoRef.current.isDown) {
+                if (dragInfoRef.current.moved) {
+                    setCartTop((latest) => {
+                        if (latest !== null) {
+                            try {
+                                localStorage.setItem('ekhone_floating_cart_y', latest.toString());
+                            } catch (_) {}
+                        }
+                        return latest;
+                    });
+                    setTimeout(() => {
+                        dragInfoRef.current.moved = false;
+                        setIsDragging(false);
+                    }, 100);
+                } else {
+                    setIsDragging(false);
                 }
-                return latest;
-            });
+                dragInfoRef.current.isDown = false;
+            }
 
             window.removeEventListener('mousemove', onDragMove);
             window.removeEventListener('mouseup', onDragEnd);
@@ -130,11 +144,12 @@ export default function FloatingCart() {
             ref={cartWidgetRef}
             onMouseDown={onDragStart}
             onTouchStart={onDragStart}
+            onDragStart={(e) => e.preventDefault()}
             style={{
                 top: cartTop !== null ? `${cartTop}px` : '45%',
             }}
             className={`fixed right-0 z-40 touch-none select-none ${
-                isDragging ? 'cursor-grabbing scale-105 shadow-2xl transition-none' : 'cursor-grab'
+                isDragging ? 'cursor-grabbing shadow-2xl transition-none' : 'cursor-grab'
             }`}
             title="Drag to reposition cart or click to view bag"
         >

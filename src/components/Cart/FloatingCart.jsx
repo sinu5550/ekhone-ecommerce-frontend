@@ -142,28 +142,26 @@ export default function FloatingCart() {
                 type="button"
                 draggable={false}
                 onClick={handleCartClick}
-                className="flex flex-col items-center shadow-[0_4px_20px_rgba(244,81,22,0.35)] rounded-l-2xl overflow-hidden border border-[#F45116]/30 border-r-0 hover:translate-x-[-3px] transition-transform duration-300 group/sticky-cart cursor-grab active:cursor-grabbing text-left bg-transparent isolate"
+                className="flex flex-col items-center w-16 md:w-20 rounded-l-2xl overflow-hidden border border-[#F45116]/40 border-r-0 shadow-[0_4px_20px_rgba(244,81,22,0.35)] hover:translate-x-[-3px] transition-transform duration-300 group/sticky-cart cursor-grab active:cursor-grabbing text-left bg-white p-0"
             >
-                {/* Drag Handle & Top Area */}
-                <div className="w-16 md:w-20 bg-[#F45116] rounded-tl-2xl pt-2 pb-0.5 flex justify-center items-center opacity-70 group-hover/sticky-cart:opacity-100 transition-opacity pointer-events-none">
-                    <div className="flex gap-1">
-                        <span className="w-1 h-1 bg-white/90 rounded-full" />
-                        <span className="w-1 h-1 bg-white/90 rounded-full" />
-                        <span className="w-1 h-1 bg-white/90 rounded-full" />
+                {/* Top Section: Orange Background (Header + Counter) */}
+                <div className="w-full bg-[#F45116] group-hover/sticky-cart:bg-[#D9400B] text-white transition-colors flex flex-col items-center pt-2 pb-2.5 px-1.5 pointer-events-none">
+                    {/* Drag Handle Indicator */}
+                    <div className="flex gap-1 mb-1 opacity-70 group-hover/sticky-cart:opacity-100 transition-opacity">
+                        <span className="w-1 h-1 bg-white rounded-full" />
+                        <span className="w-1 h-1 bg-white rounded-full" />
+                        <span className="w-1 h-1 bg-white rounded-full" />
                     </div>
-                </div>
 
-                {/* Main Cart Body */}
-                <div className="bg-[#F45116] text-white p-2.5 pt-0.5 flex flex-col items-center justify-center w-16 md:w-20 min-h-[52px] md:min-h-[58px] group-hover/sticky-cart:bg-[#D9400B] transition-colors pointer-events-none">
-                    <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                    <span className="text-[10px] md:text-[11px] font-bold whitespace-nowrap mt-1">
+                    <ShoppingCart className="w-5 h-5 md:w-6 md:h-6 text-white my-0.5" />
+                    <span className="text-[10px] md:text-[11px] font-bold whitespace-nowrap leading-tight">
                         {cartCount} {cartCount === 1 ? 'Item' : 'Items'}
                     </span>
                 </div>
 
-                {/* Bottom Total Pill with matching rounded bottom-left corner */}
-                <div className="flex bg-white text-gray-900 py-1.5 md:py-2 px-2 md:px-3 items-center justify-center w-16 md:w-20 rounded-bl-2xl border-t border-orange-100 pointer-events-none">
-                    <span className="text-[11px] md:text-[13px] font-black text-[#F45116] truncate">
+                {/* Bottom Section: Pure White (Price only, seamlessly clipped by parent button's rounded-l-2xl) */}
+                <div className="w-full bg-white text-gray-900 py-1.5 md:py-2 px-1 flex items-center justify-center pointer-events-none border-t border-orange-100/80">
+                    <span className="text-[11px] md:text-[13px] font-black text-[#F45116] truncate text-center">
                         ৳{formatPrice(cartTotal)}
                     </span>
                 </div>

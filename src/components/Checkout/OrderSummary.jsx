@@ -213,7 +213,20 @@ const OrderSummary = ({
                 const isSelected = (item.variantId || null) === v.id;
                 const vColorInfo = getVariantColorInfo(v);
                 const vDisplayLabel = getVariantDisplayLabel(v);
-                const vPrice = parseFloat(v.price || 0);
+                const vRawPrice = parseFloat(v.price || item.originalPrice || item.price || 0);
+                
+                // Calculate discounted price for this variant
+                const discountVal = parseFloat(item.discountValue || 0);
+                let vEffectivePrice = vRawPrice;
+                if (discountVal > 0) {
+                  if (item.discountType === "Fixed") {
+                    vEffectivePrice = Math.max(0, vRawPrice - discountVal);
+                  } else {
+                    const discAmt = (vRawPrice * discountVal) / 100;
+                    vEffectivePrice = Math.max(0, vRawPrice - discAmt);
+                  }
+                }
+                const hasVariantDiscount = vRawPrice > vEffectivePrice;
 
                 return (
                   <button
@@ -239,9 +252,14 @@ const OrderSummary = ({
                       />
                     ) : null}
                     <span>{vDisplayLabel}</span>
-                    {vPrice > 0 && (
-                      <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-slate-500"}`}>
-                        (৳{vPrice.toLocaleString()})
+                    {vEffectivePrice > 0 && (
+                      <span className={`text-[10px] font-medium ${isSelected ? "text-white/95" : "text-slate-600"}`}>
+                        ৳{vEffectivePrice.toLocaleString()}
+                        {hasVariantDiscount && (
+                          <span className={`line-through ml-1 ${isSelected ? "text-white/60" : "text-slate-400"}`}>
+                            ৳{vRawPrice.toLocaleString()}
+                          </span>
+                        )}
                       </span>
                     )}
                   </button>

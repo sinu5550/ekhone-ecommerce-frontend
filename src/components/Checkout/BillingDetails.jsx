@@ -1003,12 +1003,14 @@ const BillingDetails = ({
                         </div>
                         <div className="text-xs text-gray-600 space-y-0.5">
                           <p>{address.address}</p>
-                          <p>
-                            {address.upazila}, {address.district}
-                          </p>
-                          <p>
-                            {address.division} - {address.postalCode}
-                          </p>
+                          {[address.upazila, address.district].filter(Boolean).length > 0 && (
+                            <p>{[address.upazila, address.district].filter(Boolean).join(", ")}</p>
+                          )}
+                          {(address.division || address.postalCode) && (
+                            <p>
+                              {[address.division, address.postalCode].filter(Boolean).join(" - ")}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center justify-center pt-2">
                           <div

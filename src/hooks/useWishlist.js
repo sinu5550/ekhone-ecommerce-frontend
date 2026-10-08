@@ -55,6 +55,22 @@ export const useWishlist = () => {
                 return false;
             }
 
+            const rawOrigPrice = parseFloat(product.originalPrice || product.price || 0);
+            let finalPrice = parseFloat(product.price || 0);
+            const discValue = parseFloat(product.discountValue || product.campaignInfo?.discountValue || 0);
+
+            if (product.discountPrice !== undefined && product.discountPrice !== null) {
+                finalPrice = parseFloat(product.discountPrice);
+            } else if (discValue > 0) {
+                if (product.discountType === "Fixed" || product.campaignInfo?.discountType === "Fixed") {
+                    finalPrice = Math.max(0, rawOrigPrice - discValue);
+                } else {
+                    const discAmt = (rawOrigPrice * discValue) / 100;
+                    const maxDisc = product.campaignInfo?.maxDiscountAmount ? parseFloat(product.campaignInfo.maxDiscountAmount) : null;
+                    finalPrice = Math.max(0, rawOrigPrice - (maxDisc && discAmt > maxDisc ? maxDisc : discAmt));
+                }
+            }
+
             const item = {
                 id: product.id,
                 productId: product.id,
@@ -62,9 +78,11 @@ export const useWishlist = () => {
                 slug: product.slug,
                 sku: product.sku,
                 productName: product.productName || product.name,
-                price: parseFloat(product.price || 0),
-                originalPrice: parseFloat(product.originalPrice || product.price || 0),
-                discountPrice: parseFloat(product.discountPrice || product.price || 0),
+                price: finalPrice,
+                originalPrice: rawOrigPrice,
+                discountPrice: finalPrice,
+                discountValue: discValue,
+                discountType: product.discountType || product.campaignInfo?.discountType || "Percentage",
                 quantity: product.quantity ?? product.stockQuantity ?? 1,
                 images: Array.isArray(product.images) ? product.images : [product.images || product.image].filter(Boolean),
                 image: product.image || (Array.isArray(product.images) ? product.images[0] : null),

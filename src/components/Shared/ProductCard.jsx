@@ -75,7 +75,15 @@ export default function ProductCard({ product, onOpenQuickView }) {
         if (isWishlisted) {
             removeFromWishlist(product.id);
         } else {
-            addToWishlist(product);
+            addToWishlist({
+                ...product,
+                price: discountedPrice,
+                originalPrice: originalPrice,
+                discountPrice: discountedPrice,
+                discountAmount: Math.max(0, originalPrice - discountedPrice),
+                discountValue: discountValue,
+                discountType: product.discountType || product.campaignInfo?.discountType || "Percentage",
+            });
         }
     };
 
@@ -144,7 +152,7 @@ export default function ProductCard({ product, onOpenQuickView }) {
         };
         setBuyNowItem(item, 1, targetVariant?.id || null);
         toast.success("Proceeding to checkout...");
-        router.push("/checkout");
+        router.push("/checkout?buyNow=true");
     };
 
     return (

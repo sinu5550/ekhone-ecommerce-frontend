@@ -286,7 +286,22 @@ export default function ProductDetailsClient({
                   if (isWishlisted) {
                     removeFromWishlist(product.id);
                   } else {
-                    addToWishlist(product);
+                    addToWishlist({
+                      ...product,
+                      price: discountedPrice,
+                      originalPrice: baseVariantPrice,
+                      discountPrice: discountedPrice,
+                      discountAmount: Math.max(0, baseVariantPrice - discountedPrice),
+                      discountValue: discountValue,
+                      discountType: product.discountType || "Percentage",
+                      ...(isVariantProduct && selectedVariant && {
+                        variantId: selectedVariant.id,
+                        variantAttributes: selectedAttributes,
+                        variantType: Object.entries(selectedAttributes || {})
+                          .map(([k, v]) => `${k}: ${v}`)
+                          .join(", "),
+                      }),
+                    });
                   }
                 }}
                 title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}

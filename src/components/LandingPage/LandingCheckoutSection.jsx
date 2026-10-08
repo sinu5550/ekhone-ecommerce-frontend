@@ -608,9 +608,21 @@ export default function LandingCheckoutSection({
                                                 ভ্যারিয়েন্ট: {getVariantLabel(selectedVariant)}
                                             </p>
                                         )}
-                                        <p className="text-sm font-extrabold text-primary mt-0.5">
-                                            ৳ {unitPrice.toLocaleString()}
-                                        </p>
+                                        <div className="flex items-baseline flex-wrap gap-2 mt-1">
+                                            <p className="text-sm sm:text-base font-black text-primary font-hind">
+                                                ৳ {unitPrice.toLocaleString()}
+                                            </p>
+                                            {rawUnitPrice > unitPrice && (
+                                                <>
+                                                    <span className="text-xs text-slate-400 line-through font-hind">
+                                                        ৳ {rawUnitPrice.toLocaleString()}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-sm">
+                                                        -৳ {(rawUnitPrice - unitPrice).toLocaleString()} ছাড় ({Math.round(((rawUnitPrice - unitPrice) / rawUnitPrice) * 100)}% OFF)
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 

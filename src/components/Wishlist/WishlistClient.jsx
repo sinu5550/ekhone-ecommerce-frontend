@@ -78,7 +78,26 @@ export default function WishlistClient() {
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs divide-y divide-gray-100">
                     {wishlist.map((item) => {
                         const image = item.image || (Array.isArray(item.images) ? item.images[0] : null) || '/placeholder.png';
-                        const displayPrice = item.discountPrice || item.price || 0;
+                        const origPrice = parseFloat(item.originalPrice || item.price || 0);
+                        let finalPrice = parseFloat(item.discountPrice !== undefined ? item.discountPrice : (item.price || 0));
+                        
+                        // Fallback calculate if originalPrice is set and discountValue exists or discountPrice wasn't saved correctly
+                        if (origPrice > 0 && finalPrice >= origPrice) {
+                            const discVal = parseFloat(item.discountValue || item.campaignInfo?.discountValue || 0);
+                            if (discVal > 0) {
+                                if (item.discountType === "Fixed" || item.campaignInfo?.discountType === "Fixed") {
+                                    finalPrice = Math.max(0, origPrice - discVal);
+                                } else {
+                                    const discAmt = (origPrice * discVal) / 100;
+                                    finalPrice = Math.max(0, origPrice - discAmt);
+                                }
+                            }
+                        }
+
+                        const hasDiscount = origPrice > finalPrice;
+                        const discountPct = hasDiscount 
+                            ? Math.round(((origPrice - finalPrice) / origPrice) * 100) 
+                            : 0;
 
                         return (
                             <div
@@ -115,15 +134,20 @@ export default function WishlistClient() {
                                             </p>
                                         )}
 
-                                        {/* Price */}
-                                        <div className="flex items-center gap-2 mt-1.5">
+                                        {/* Price with Discount */}
+                                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                                             <span className="text-base md:text-lg font-black text-[#F45116]">
-                                                ৳{formatPrice(displayPrice)}
+                                                ৳{formatPrice(finalPrice)}
                                             </span>
-                                            {item.originalPrice > displayPrice && (
-                                                <span className="text-xs text-gray-400 line-through">
-                                                    ৳{formatPrice(item.originalPrice)}
-                                                </span>
+                                            {hasDiscount && (
+                                                <>
+                                                    <span className="text-xs text-gray-400 line-through">
+                                                        ৳{formatPrice(origPrice)}
+                                                    </span>
+                                                    <span className="bg-[#E11D48]/10 text-[#E11D48] text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                                        -{discountPct}% OFF
+                                                    </span>
+                                                </>
                                             )}
                                         </div>
 

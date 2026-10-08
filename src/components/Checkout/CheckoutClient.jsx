@@ -7,13 +7,15 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { IoIosArrowForward } from "react-icons/io";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Swal from "sweetalert2";
 import { FaShoppingBag } from "react-icons/fa";
 import { useCart } from "@/hooks/useCart";
+import { useCartDrawer } from "@/context/CartDrawerContext";
 import BillingDetails from "@/components/Checkout/BillingDetails";
 import OrderSummary from "@/components/Checkout/OrderSummary";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
+import { getVariantDisplayLabel } from "@/lib/variantHelpers";
 import { 
   trackBeginCheckout, 
   trackAddShippingInfo, 
@@ -23,6 +25,9 @@ import {
 
 export default function CheckoutClient({ initialContact = null }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDirectBuyNow = searchParams?.get("buyNow") === "true";
+  const { openCartDrawer } = useCartDrawer();
   const {
     cart,
     loading: cartLoading,
@@ -72,19 +77,22 @@ export default function CheckoutClient({ initialContact = null }) {
     if (cartLoading) return;
 
     const buyNow = getBuyNowItem();
-    if (buyNow && (buyNow.productId || buyNow.id)) {
+    // Only treat as Buy Now if explicitly direct buy now OR cart is completely empty
+    if (isDirectBuyNow && buyNow && (buyNow.productId || buyNow.id)) {
       setIsBuyNow(true);
       setCheckoutItems([buyNow]);
       trackBeginCheckout([buyNow]);
     } else {
+      // Cart checkout: load ALL items currently in the cart
       setIsBuyNow(false);
-      setCheckoutItems(cart || []);
-      if (cart && cart.length > 0) {
-        trackBeginCheckout(cart);
+      const items = Array.isArray(cart) ? cart : [];
+      setCheckoutItems(items);
+      if (items.length > 0) {
+        trackBeginCheckout(items);
       }
     }
     setIsLoaded(true);
-  }, [cartLoading, cart, getBuyNowItem]);
+  }, [cartLoading, cart, getBuyNowItem, isDirectBuyNow]);
 
   const getCheckoutTotal = useCallback(() => {
     return checkoutItems.reduce((total, item) => {
@@ -179,6 +187,63 @@ export default function CheckoutClient({ initialContact = null }) {
     [isBuyNow, checkoutItems, handleRemoveItem, updateQuantity]
   );
 
+  // Handle switching variant directly inside checkout page
+  const handleSelectVariant = useCallback(
+    (currentItem, newVariant) => {
+      if (!newVariant) return;
+
+      const baseVariantPrice = newVariant.price ? parseFloat(newVariant.price) : parseFloat(currentItem.originalPrice || currentItem.price || 0);
+      const discountVal = parseFloat(currentItem.discountValue || 0);
+      let calculatedPrice = baseVariantPrice;
+
+      if (discountVal > 0) {
+        if (currentItem.discountType === "Fixed") {
+          calculatedPrice = Math.max(0, baseVariantPrice - discountVal);
+        } else {
+          const discAmt = (baseVariantPrice * discountVal) / 100;
+          calculatedPrice = Math.max(0, baseVariantPrice - discAmt);
+        }
+      }
+
+      const newDiscAmt = Math.max(0, baseVariantPrice - calculatedPrice);
+      const newStock = newVariant.stockQuantity ?? newVariant.quantity ?? currentItem.stockQuantity;
+
+      const updatedItem = {
+        ...currentItem,
+        variantId: newVariant.id,
+        variantAttributes: newVariant.attributes || newVariant.variantAttributes || null,
+        variantType: newVariant.title || newVariant.name || null,
+        sku: newVariant.sku || currentItem.sku,
+        price: calculatedPrice,
+        originalPrice: baseVariantPrice,
+        discountAmount: newDiscAmt,
+        stockQuantity: newStock,
+        image: newVariant.image || currentItem.image,
+        images: newVariant.image ? [newVariant.image] : currentItem.images,
+      };
+
+      if (isBuyNow) {
+        setCheckoutItems([updatedItem]);
+        try {
+          localStorage.setItem("ekhone_buy_now_item", JSON.stringify(updatedItem));
+        } catch (_) {}
+        return;
+      }
+
+      setCheckoutItems((prev) =>
+        prev.map((item) => {
+          const itemRealId = item.productId || item.id;
+          const targetId = currentItem.productId || currentItem.id;
+          if (itemRealId === targetId && (item.variantId || null) === (currentItem.variantId || null)) {
+            return updatedItem;
+          }
+          return item;
+        })
+      );
+    },
+    [isBuyNow]
+  );
+
   const onCheckoutSubmit = async (data) => {
     try {
       setLoading(true);
@@ -241,8 +306,9 @@ export default function CheckoutClient({ initialContact = null }) {
         const lineTotal = unitPrice * quantity;
 
         const variantAttrs = item.variantAttributes || item.attributes || null;
+        const variantLabel = getVariantDisplayLabel({ attributes: variantAttrs, color: item.color, size: item.size }) || null;
         let variantTypeStr =
-          item.variantType || item.variantTitle || item.variantName || null;
+          item.variantType || item.variantTitle || item.variantName || variantLabel || null;
         if (!variantTypeStr && variantAttrs && typeof variantAttrs === "object") {
           variantTypeStr = Object.entries(variantAttrs)
             .map(([k, v]) => `${k}: ${v}`)
@@ -250,11 +316,15 @@ export default function CheckoutClient({ initialContact = null }) {
         }
 
         const variantIdVal = item.variantId ? parseInt(item.variantId) : null;
+        const mainProductName = item.productName || item.name || item.title || "";
+        const formattedProductName = (variantIdVal || variantAttrs) && variantLabel && !mainProductName.toLowerCase().includes(variantLabel.toLowerCase())
+          ? `${mainProductName} - ${variantLabel}`
+          : mainProductName;
 
         const baseItem = {
           productId: productId,
-          productName: item.productName || item.name || item.title || "",
-          name: item.productName || item.name || item.title || "",
+          productName: formattedProductName,
+          name: formattedProductName,
           sku: item.sku || null,
           quantity: quantity,
           unitPrice: unitPrice,
@@ -446,12 +516,13 @@ export default function CheckoutClient({ initialContact = null }) {
             Home <IoIosArrowForward size={12} />
           </Link>
           {!isBuyNow && (
-            <Link
-              href="/cart"
-              className="hover:underline hover:text-[#F45116] flex items-center gap-1 transition cursor-pointer"
+            <button
+              type="button"
+              onClick={openCartDrawer}
+              className="hover:underline hover:text-[#F45116] flex items-center gap-1 transition cursor-pointer text-gray-500"
             >
               Cart <IoIosArrowForward size={12} />
-            </Link>
+            </button>
           )}
           <p className="font-bold text-gray-900">Checkout</p>
         </div>
@@ -475,6 +546,7 @@ export default function CheckoutClient({ initialContact = null }) {
             placeOrderRef={placeOrderRef}
             onRemoveItem={handleRemoveItem}
             onUpdateQuantity={handleUpdateQuantity}
+            onSelectVariant={handleSelectVariant}
             renderOnly="products"
           />
         </div>
@@ -520,6 +592,7 @@ export default function CheckoutClient({ initialContact = null }) {
                 placeOrderRef={placeOrderRef}
                 onRemoveItem={handleRemoveItem}
                 onUpdateQuantity={handleUpdateQuantity}
+                onSelectVariant={handleSelectVariant}
                 renderOnly="products"
               />
             </div>

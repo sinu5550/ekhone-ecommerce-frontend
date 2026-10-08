@@ -21,6 +21,9 @@ import TopHeader from "./TopHeader";
 import SearchBar from "./SearchBar";
 import { useCategories, useContact } from "@/lib/dataFetch";
 import { useUser } from "@/hooks/useUser";
+import { useCart } from "@/hooks/useCart";
+import { useWishlist } from "@/hooks/useWishlist";
+import { useCartDrawer } from "@/context/CartDrawerContext";
 
 export default function NavbarClient({
   categories: initialCategories = [],
@@ -37,6 +40,12 @@ export default function NavbarClient({
   // Live SWR updates on tab focus / interval without manual page refresh
   const { categories } = useCategories(initialCategories);
   const { contactData } = useContact(initialContact);
+  const { getCartCount } = useCart();
+  const { getWishlistCount } = useWishlist();
+  const { openCartDrawer } = useCartDrawer();
+
+  const cartCount = getCartCount();
+  const wishlistCount = getWishlistCount();
 
   // Scroll state for sticky shadow
   useEffect(() => {
@@ -192,16 +201,19 @@ export default function NavbarClient({
                     strokeWidth={1.8}
                     className="group-hover:scale-110 transition-transform"
                   />
-                  <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-primary text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                    0
-                  </span>
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-[#E11D48] text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-xs">
+                      {wishlistCount}
+                    </span>
+                  )}
                 </div>
                 <span className="text-[11px] font-medium mt-0.5">Wishlist</span>
               </Link>
 
-              {/* Cart */}
-              <Link
-                href="/cart"
+              {/* Cart Button triggering Cart Slider */}
+              <button
+                type="button"
+                onClick={openCartDrawer}
                 className="relative flex flex-col items-center justify-center text-slate-700 hover:text-primary transition cursor-pointer group"
               >
                 <div className="relative">
@@ -210,12 +222,14 @@ export default function NavbarClient({
                     strokeWidth={1.8}
                     className="group-hover:scale-110 transition-transform"
                   />
-                  <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-primary text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                    0
-                  </span>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-primary text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-xs">
+                      {cartCount}
+                    </span>
+                  )}
                 </div>
                 <span className="text-[11px] font-medium mt-0.5">Cart</span>
-              </Link>
+              </button>
             </div>
           </div>
 

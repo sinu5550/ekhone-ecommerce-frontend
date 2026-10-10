@@ -6,7 +6,7 @@ import { Trash2, Heart, Package, ShoppingBag, ArrowRight } from "lucide-react";
 import { useWishlist } from "@/hooks/useWishlist";
 import WishlistCartButton from "./WishlistCartButton";
 import Container from "@/components/Shared/Container";
-import { formatPrice, getColorName, isHexColor } from "@/lib/variantHelpers";
+import { formatPrice, getColorName, isHexColor, formatVariantTypeString } from "@/lib/variantHelpers";
 
 const EmptyWishlist = () => (
     <Container className="py-12 md:py-20 font-sans">
@@ -77,7 +77,18 @@ export default function WishlistClient() {
                 {/* Wishlist Items Table / Grid */}
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs divide-y divide-gray-100">
                     {wishlist.map((item) => {
-                        const image = item.image || (Array.isArray(item.images) ? item.images[0] : null) || '/placeholder.png';
+                        // Comprehensive resolution for item image (handles item.image, item.images, variant images, etc.)
+                        const rawImage = item.image || 
+                            (Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : null) ||
+                            (Array.isArray(item.productVariants) && item.productVariants.length > 0 ? item.productVariants.find(v => v.image)?.image || item.productVariants[0]?.image : null) ||
+                            item.product?.image ||
+                            (Array.isArray(item.product?.images) && item.product?.images.length > 0 ? item.product?.images[0] : null) ||
+                            "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80";
+
+                        const image = (typeof rawImage === 'string' && rawImage.trim() !== '') 
+                            ? rawImage 
+                            : "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80";
+
                         const origPrice = parseFloat(item.originalPrice || item.price || 0);
                         let finalPrice = parseFloat(item.discountPrice !== undefined ? item.discountPrice : (item.price || 0));
                         
@@ -114,6 +125,8 @@ export default function WishlistClient() {
                                             src={image}
                                             alt={item.productName || 'Product'}
                                             fill
+                                            sizes="96px"
+                                            unoptimized={typeof image === 'string' && image.startsWith('http')}
                                             className="object-cover"
                                         />
                                     </Link>
@@ -128,10 +141,15 @@ export default function WishlistClient() {
                                         </Link>
 
                                         {/* Variant info */}
-                                        {item.variantType && (
-                                            <p className="text-xs text-gray-500 mt-0.5 font-medium">
-                                                Variant: {item.variantType}
-                                            </p>
+                                        {(item.variantType || item.variantAttributes) && (
+                                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                <span className="text-[11px] font-medium text-gray-500">
+                                                    Variant:
+                                                </span>
+                                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
+                                                    {formatVariantTypeString(item.variantType || item.variantAttributes)}
+                                                </span>
+                                            </div>
                                         )}
 
                                         {/* Price with Discount */}

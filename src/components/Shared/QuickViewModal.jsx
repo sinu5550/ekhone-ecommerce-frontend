@@ -20,6 +20,9 @@ import {
   extractVariantOptions,
   findMatchingVariant,
   formatPrice,
+  getColorName,
+  isHexColor,
+  formatVariantTypeString,
 } from "@/lib/variantHelpers";
 
 export default function QuickViewModal({ product, isOpen, onClose }) {
@@ -150,9 +153,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
       ...(selectedVariant && {
         variantId: selectedVariant.id,
         variantAttributes: selectedVariant.attributes,
-        variantType: Object.entries(selectedVariant.attributes || {})
-          .map(([k, v]) => `${k}: ${v}`)
-          .join(", "),
+        variantType: formatVariantTypeString(selectedVariant.attributes),
       }),
     };
     addToCart(item, quantity, selectedVariant?.id);
@@ -183,9 +184,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
       ...(selectedVariant && {
         variantId: selectedVariant.id,
         variantAttributes: selectedVariant.attributes,
-        variantType: Object.entries(selectedVariant.attributes || {})
-          .map(([k, v]) => `${k}: ${v}`)
-          .join(", "),
+        variantType: formatVariantTypeString(selectedVariant.attributes),
       }),
     };
     setBuyNowItem(item, quantity, selectedVariant?.id);
@@ -299,7 +298,9 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                         </span>
                         {selectedAttributes[opt.attributeName] && (
                           <span className="text-xs font-bold text-primary">
-                            {selectedAttributes[opt.attributeName]}
+                            {isHexColor(selectedAttributes[opt.attributeName])
+                              ? getColorName(selectedAttributes[opt.attributeName])
+                              : selectedAttributes[opt.attributeName]}
                           </span>
                         )}
                       </div>

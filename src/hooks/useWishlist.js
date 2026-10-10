@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { formatVariantTypeString } from '@/lib/variantHelpers';
 
 const WISHLIST_STORAGE_KEY = 'ekhone_wishlist';
 const WISHLIST_EVENTS = {
@@ -40,8 +41,13 @@ export const useWishlist = () => {
     }, [loadWishlist]);
 
     const isInWishlist = useCallback((productId, variantId = null) => {
-        const targetId = getWishlistItemId(productId, variantId);
-        return wishlist.some(item => getWishlistItemId(item.id || item.productId, item.variantId) === targetId);
+        if (!productId) return false;
+        if (variantId) {
+            const targetId = getWishlistItemId(productId, variantId);
+            return wishlist.some(item => getWishlistItemId(item.id || item.productId, item.variantId) === targetId);
+        }
+        // If variantId not specified, return true if product or any of its variants is in wishlist
+        return wishlist.some(item => String(item.id || item.productId) === String(productId));
     }, [wishlist]);
 
     const addToWishlist = useCallback((product) => {
@@ -71,6 +77,10 @@ export const useWishlist = () => {
                 }
             }
 
+            const cleanVariantType = product.variantType 
+                ? formatVariantTypeString(product.variantType)
+                : (product.variantAttributes ? formatVariantTypeString(product.variantAttributes) : null);
+
             const item = {
                 id: product.id,
                 productId: product.id,
@@ -89,7 +99,7 @@ export const useWishlist = () => {
                 status: product.status !== false,
                 variantId: product.variantId || null,
                 variantAttributes: product.variantAttributes || null,
-                variantType: product.variantType || null,
+                variantType: cleanVariantType,
                 productType: product.productType || (product.variantId ? 'variant' : 'simple'),
             };
 

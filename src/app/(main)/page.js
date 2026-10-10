@@ -5,6 +5,14 @@ import CategoryProductsSection from "@/components/Home/CategoryProductsSection";
 import AllProductsSection from "@/components/Home/AllProductsSection";
 import { apiClient } from "@/lib/apiClient";
 
+export const metadata = {
+  title: "Ekhone | Authentic Online Shopping in Bangladesh",
+  description: "Ekhone is your trusted online shopping store in Bangladesh. Buy authentic electronics, fashion, lifestyle items, and home appliances with cash on delivery and fastest nationwide shipping.",
+  alternates: {
+    canonical: process.env.NEXT_PUBLIC_SITE_URL,
+  },
+};
+
 export default async function HomePage() {
   let heroSliders = [];
   let categories = [];

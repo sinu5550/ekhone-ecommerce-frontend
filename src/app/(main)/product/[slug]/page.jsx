@@ -151,25 +151,28 @@ export default async function ProductDetailsPage({ params }) {
       <ProductDetailsClient
         product={product}
         relatedProductsSlot={
-          <Suspense fallback={
-            <div className="mt-14 mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
-                    Related Products
-                  </h2>
-                  <p className="text-xs md:text-sm text-gray-500 mt-1">
-                    Customers also viewed these authentic items
-                  </p>
+          <Suspense
+            key={`related-${product.id}`}
+            fallback={
+              <div className="mt-14 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
+                      Related Products
+                    </h2>
+                    <p className="text-xs md:text-sm text-gray-500 mt-1">
+                      Customers also viewed these authentic items
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
+                  {[...Array(5)].map((_, i) => (
+                    <ProductCardSkeleton key={`skeleton-${i}`} />
+                  ))}
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
-                {[...Array(5)].map((_, i) => (
-                  <ProductCardSkeleton key={i} />
-                ))}
-              </div>
-            </div>
-          }>
+            }
+          >
             <AsyncRelatedProducts
               subCategoryId={product.subCategoryId || product.subCategory?.id}
               productId={product.id}

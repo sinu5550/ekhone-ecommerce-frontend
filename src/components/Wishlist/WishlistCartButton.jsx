@@ -22,13 +22,37 @@ export default function WishlistCartButton({ product, onMoveComplete }) {
 
         setLoading(true);
         try {
+            const origPrice = parseFloat(product.originalPrice || product.price || 0);
+            let finalPrice = parseFloat(product.discountPrice !== undefined && product.discountPrice !== null ? product.discountPrice : (product.price || 0));
+
+            // Fallback calculate if finalPrice equals origPrice but discount is present
+            if (origPrice > 0 && finalPrice >= origPrice) {
+                const discVal = parseFloat(product.discountValue || product.campaignInfo?.discountValue || 0);
+                if (discVal > 0) {
+                    if (product.discountType === "Fixed" || product.campaignInfo?.discountType === "Fixed") {
+                        finalPrice = Math.max(0, origPrice - discVal);
+                    } else {
+                        const discAmt = (origPrice * discVal) / 100;
+                        finalPrice = Math.max(0, origPrice - discAmt);
+                    }
+                }
+            }
+
+            const discountAmt = Math.max(0, origPrice - finalPrice);
+
             const cartProduct = {
                 id: product.id,
-                productId: product.id,
+                productId: product.productId || product.id,
                 slug: product.slug,
                 productName: product.productName,
-                price: product.discountPrice || product.price,
-                originalPrice: product.price,
+                price: finalPrice,
+                originalPrice: origPrice,
+                discountAmount: discountAmt,
+                discountPrice: finalPrice,
+                discountValue: product.discountValue || product.campaignInfo?.discountValue || 0,
+                discountType: product.discountType || product.campaignInfo?.discountType || "Percentage",
+                campaignName: product.campaignName || product.campaignInfo?.campaignName || null,
+                campaignId: product.campaignId || product.campaignInfo?.id || null,
                 images: product.images || [product.image].filter(Boolean),
                 image: product.image,
                 quantity: 1,

@@ -10,6 +10,7 @@ export default function WelcomeAudioPlayer() {
   const [activeMode, setActiveMode] = useState("welcome"); // 'welcome' | 'product'
 
   const audioRef = useRef(null);
+  const isHomePage = pathname === "/";
   const isProductPage = pathname?.startsWith("/product/") && pathname !== "/product";
 
   // Global Audio Controller
@@ -72,7 +73,8 @@ export default function WelcomeAudioPlayer() {
         }
         setIsPlaying(false);
       };
-    } else {
+    } else if (isHomePage) {
+      // STRICTLY ONLY ON HOMEPAGE
       setActiveMode("welcome");
       audio.src = "/audio/welcome.mp3";
       audio.playbackRate = 1.15;
@@ -80,7 +82,7 @@ export default function WelcomeAudioPlayer() {
       audio.playbackRate = 1.15;
 
       const playWelcome = () => {
-        if (!audioRef.current) return;
+        if (!audioRef.current || pathname !== "/") return;
         audioRef.current.playbackRate = 1.15;
         audioRef.current
           .play()
@@ -111,8 +113,20 @@ export default function WelcomeAudioPlayer() {
         }
         setIsPlaying(false);
       };
+    } else {
+      // Any other page (e.g. /product catalog, /checkout, /cart, /login, etc.) - STOP ALL
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setIsPlaying(false);
     }
-  }, [pathname, isProductPage]);
+  }, [pathname, isHomePage, isProductPage]);
+
+  // If page is neither Home nor Product Details, do not show the widget
+  if (!isHomePage && !isProductPage) {
+    return null;
+  }
 
   // Toggle Play / Pause
   const togglePlay = () => {

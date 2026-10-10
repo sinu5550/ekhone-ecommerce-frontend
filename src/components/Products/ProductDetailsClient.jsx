@@ -19,6 +19,10 @@ import {
   calculateVariantPrice,
   formatPrice,
   findMatchingVariant,
+  getDefaultVariant,
+  getColorName,
+  isHexColor,
+  formatVariantTypeString,
 } from "@/lib/variantHelpers";
 
 export default function ProductDetailsClient({
@@ -31,12 +35,15 @@ export default function ProductDetailsClient({
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { contactData } = useContact();
 
+  const isVariantProduct = product?.productType === "variant";
+  const initialDefaultVariant = isVariantProduct ? getDefaultVariant(product) : null;
+
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState(null);
-  const [selectedAttributes, setSelectedAttributes] = useState({});
+  const [selectedVariant, setSelectedVariant] = useState(initialDefaultVariant);
+  const [selectedAttributes, setSelectedAttributes] = useState(initialDefaultVariant?.attributes || {});
   const [buyNowLoading, setBuyNowLoading] = useState(false);
   const [isInCart, setIsInCart] = useState(false);
-  const isWishlisted = isInWishlist(product?.id);
+  const isWishlisted = isInWishlist(product?.id, selectedVariant?.id);
 
 
 
@@ -53,7 +60,6 @@ export default function ProductDetailsClient({
   };
 
   const [displayImages, setDisplayImages] = useState(getAllProductImages());
-  const isVariantProduct = product?.productType === "variant";
 
   // Check matching variant
   const getSelectedVariantStatus = () => {
@@ -167,9 +173,7 @@ export default function ProductDetailsClient({
         ...(isVariantProduct && selectedVariant && {
           variantId: selectedVariant.id,
           variantAttributes: selectedAttributes,
-          variantType: Object.entries(selectedAttributes || {})
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(", "),
+          variantType: formatVariantTypeString(selectedAttributes),
           productType: "variant",
         }),
       };
@@ -208,9 +212,7 @@ export default function ProductDetailsClient({
       ...(isVariantProduct && selectedVariant && {
         variantId: selectedVariant.id,
         variantAttributes: selectedAttributes,
-        variantType: Object.entries(selectedAttributes || {})
-          .map(([k, v]) => `${k}: ${v}`)
-          .join(", "),
+        variantType: formatVariantTypeString(selectedAttributes),
         productType: "variant",
       }),
     };
@@ -286,8 +288,14 @@ export default function ProductDetailsClient({
                 type="button"
                 onClick={() => {
                   if (isWishlisted) {
-                    removeFromWishlist(product.id);
+                    removeFromWishlist(product.id, selectedVariant?.id || null);
                   } else {
+                    const cleanVariantLabel = isVariantProduct && selectedVariant
+                      ? formatVariantTypeString(selectedAttributes)
+                      : null;
+
+                    const variantImg = selectedVariant?.image || displayImages[0] || product.image;
+
                     addToWishlist({
                       ...product,
                       price: discountedPrice,
@@ -296,12 +304,13 @@ export default function ProductDetailsClient({
                       discountAmount: Math.max(0, baseVariantPrice - discountedPrice),
                       discountValue: discountValue,
                       discountType: product.discountType || "Percentage",
+                      image: variantImg,
+                      images: [variantImg, ...(product.images || [])].filter(Boolean),
                       ...(isVariantProduct && selectedVariant && {
                         variantId: selectedVariant.id,
                         variantAttributes: selectedAttributes,
-                        variantType: Object.entries(selectedAttributes || {})
-                          .map(([k, v]) => `${k}: ${v}`)
-                          .join(", "),
+                        variantType: cleanVariantLabel,
+                        productType: "variant",
                       }),
                     });
                   }

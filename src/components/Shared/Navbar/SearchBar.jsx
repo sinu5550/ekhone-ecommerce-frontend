@@ -20,7 +20,7 @@ export default function SearchBar({ categories = [] }) {
     const containerRef = useRef(null);
     const catDropdownRef = useRef(null);
 
-    // Debounced search query
+    // Debounced search query with abort controller to prevent lag
     useEffect(() => {
         const trimmed = query.trim();
         if (!trimmed) {
@@ -31,27 +31,34 @@ export default function SearchBar({ categories = [] }) {
         }
 
         setIsLoading(true);
+        const controller = new AbortController();
+
         const timer = setTimeout(async () => {
             try {
                 let url = `/api/product?search=${encodeURIComponent(trimmed)}&limit=8`;
                 if (selectedCategory && selectedCategory !== "All") {
                     url += `&categoryName=${encodeURIComponent(selectedCategory)}`;
                 }
-                const res = await apiClient(url);
+                const res = await apiClient(url, { signal: controller.signal });
                 const items = Array.isArray(res) 
                     ? res 
                     : res?.products || res?.data?.products || res?.data || [];
                 setResults(items);
                 setIsOpen(true);
             } catch (err) {
-                console.error("Search fetch error:", err);
-                setResults([]);
+                if (err?.name !== "AbortError") {
+                    console.error("Search fetch error:", err);
+                    setResults([]);
+                }
             } finally {
                 setIsLoading(false);
             }
-        }, 250);
+        }, 120); // 120ms ultra-fast responsive debounce
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
     }, [query, selectedCategory]);
 
     // Handle outside clicks
@@ -199,11 +206,40 @@ export default function SearchBar({ categories = [] }) {
                             </div>
                             <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
                                 {results.map((product) => {
-                                    const img = Array.isArray(product.images) && product.images[0]
-                                        ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
-                                        : product.image || "/placeholder.png";
+                                    // 1. Variant image priority (if product has variant image, show it)
+                                    const variantImg = Array.isArray(product.productVariants) && product.productVariants.length > 0
+                                        ? product.productVariants.find(v => v.image)?.image || product.productVariants[0]?.image
+                                        : null;
 
-                                    const price = parseFloat(product.price || product.salePrice || 0);
+                                    const img = variantImg || 
+                                        (Array.isArray(product.images) && product.images[0]
+                                            ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
+                                            : product.image || "/placeholder.png");
+
+                                    // 2. Price & Discount calculation
+                                    const rawPrice = parseFloat(product.price || 0);
+                                    const discountVal = parseFloat(product.discountValue || 0);
+                                    let regularPrice = rawPrice;
+                                    let finalPrice = rawPrice;
+
+                                    // If variant product has specific prices
+                                    if (Array.isArray(product.productVariants) && product.productVariants.length > 0) {
+                                        const vPrices = product.productVariants.map(v => parseFloat(v.price)).filter(p => !isNaN(p) && p > 0);
+                                        if (vPrices.length > 0) {
+                                            regularPrice = Math.min(...vPrices);
+                                            finalPrice = regularPrice;
+                                        }
+                                    }
+
+                                    if (discountVal > 0) {
+                                        if (product.discountType === "Fixed") {
+                                            finalPrice = Math.max(0, regularPrice - discountVal);
+                                        } else {
+                                            finalPrice = Math.max(0, regularPrice - (regularPrice * discountVal) / 100);
+                                        }
+                                    }
+
+                                    const hasDiscount = discountVal > 0 && finalPrice < regularPrice;
                                     const targetLink = `/product/${product.slug || product.id}`;
 
                                     return (
@@ -217,13 +253,13 @@ export default function SearchBar({ categories = [] }) {
                                             className="p-3 px-4 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer group"
                                         >
                                             <div className="flex items-center gap-3 min-w-0">
-                                                <div className="w-10 h-10 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden relative">
+                                                <div className="w-11 h-11 rounded-lg border border-slate-100 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden relative">
                                                     <Image
                                                         src={img}
                                                         alt={product.productName || "Product"}
-                                                        width={40}
-                                                        height={40}
-                                                        className="object-cover w-full h-full"
+                                                        width={44}
+                                                        height={44}
+                                                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
                                                         unoptimized={typeof img === 'string' && img.startsWith('http')}
                                                     />
                                                 </div>
@@ -236,10 +272,15 @@ export default function SearchBar({ categories = [] }) {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="text-right shrink-0 pl-3">
-                                                <span className="text-xs font-bold text-slate-900">
-                                                    ৳{price.toLocaleString()}
+                                            <div className="text-right shrink-0 pl-3 flex flex-col items-end">
+                                                <span className="text-xs font-bold text-primary">
+                                                    ৳{Math.round(finalPrice).toLocaleString()}
                                                 </span>
+                                                {hasDiscount && (
+                                                    <span className="text-[10px] text-slate-400 line-through">
+                                                        ৳{Math.round(regularPrice).toLocaleString()}
+                                                    </span>
+                                                )}
                                             </div>
                                         </Link>
                                     );

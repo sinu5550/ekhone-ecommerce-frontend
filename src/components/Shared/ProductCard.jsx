@@ -75,14 +75,28 @@ export default function ProductCard({ product, onOpenQuickView }) {
         if (isWishlisted) {
             removeFromWishlist(product.id);
         } else {
+            const targetVariant = isVariantProduct
+                ? (product.productVariants?.find(v => v.isDefault) || product.productVariants?.[0] || null)
+                : null;
+
+            const finalImg = targetVariant?.image || displayImage || product.image;
+
             addToWishlist({
                 ...product,
+                image: finalImg,
+                images: [finalImg, ...(product.images || [])].filter(Boolean),
                 price: discountedPrice,
                 originalPrice: originalPrice,
                 discountPrice: discountedPrice,
                 discountAmount: Math.max(0, originalPrice - discountedPrice),
                 discountValue: discountValue,
                 discountType: product.discountType || product.campaignInfo?.discountType || "Percentage",
+                ...(targetVariant && {
+                    variantId: targetVariant.id,
+                    variantAttributes: targetVariant.attributes,
+                    variantType: targetVariant.attributes ? Object.entries(targetVariant.attributes).map(([k, v]) => `${k}: ${v}`).join(", ") : null,
+                    productType: "variant",
+                }),
             });
         }
     };

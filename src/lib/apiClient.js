@@ -29,8 +29,13 @@ export async function apiClient(endpoint, options = {}) {
         }
         return await res.json();
     } catch (err) {
-        // If it's Next.js dynamic server bailout or abort, rethrow without noisy logging
-        if (err?.digest === "DYNAMIC_SERVER_USAGE" || err?.message?.includes("Dynamic server usage")) {
+        // If it's an aborted fetch (e.g. user typed a new character), or dynamic bailout, rethrow quietly
+        if (
+            err?.name === "AbortError" || 
+            err?.message?.includes("aborted") || 
+            err?.digest === "DYNAMIC_SERVER_USAGE" || 
+            err?.message?.includes("Dynamic server usage")
+        ) {
             throw err;
         }
         console.error(`API Client Error (${url}):`, err.message);

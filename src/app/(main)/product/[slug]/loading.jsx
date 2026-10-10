@@ -1,4 +1,5 @@
 import Container from "@/components/Shared/Container";
+import ProductCardSkeleton from "@/components/Shared/ProductCardSkeleton";
 
 export default function ProductLoading() {
   return (
@@ -71,6 +72,25 @@ export default function ProductLoading() {
                 <div key={i} className="h-12 bg-slate-50 rounded-xl animate-pulse" />
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Static Related Products Section with ProductCardSkeleton */}
+        <div className="mt-14 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
+                Related Products
+              </h2>
+              <p className="text-xs md:text-sm text-gray-500 mt-1">
+                Customers also viewed these authentic items
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
+            {[...Array(5)].map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
           </div>
         </div>
       </Container>

@@ -24,6 +24,7 @@ import {
 export default function ProductDetailsClient({
   product,
   relatedProducts = [],
+  relatedProductsSlot = null,
 }) {
   const router = useRouter();
   const { addToCart, setBuyNowItem } = useCart();
@@ -503,7 +504,11 @@ export default function ProductDetailsClient({
         </div>
 
         {/* Related Products Slider */}
-        <RelatedProductsSlider relatedProducts={relatedProducts} />
+        {relatedProductsSlot ? (
+          relatedProductsSlot
+        ) : (
+          <RelatedProductsSlider relatedProducts={relatedProducts} />
+        )}
       </Container>
     </div>
   );

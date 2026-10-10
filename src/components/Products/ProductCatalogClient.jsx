@@ -50,6 +50,19 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
         setSortBy(urlSort);
     }, [urlSearch, urlCategory, urlSort]);
 
+    // Sync masterProducts when initialProducts prop updates from server
+    useEffect(() => {
+        if (initialProducts && initialProducts.length > 0) {
+            setMasterProducts((prev) => {
+                const map = new Map();
+                prev.forEach((p) => p?.id && map.set(p.id, p));
+                initialProducts.forEach((p) => p?.id && map.set(p.id, p));
+                return Array.from(map.values());
+            });
+            setIsInitialLoading(false);
+        }
+    }, [initialProducts]);
+
     // Update URL debounced in the background without causing page flicker
     useEffect(() => {
         if (searchInput === urlSearch) return;
@@ -175,7 +188,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
         }
 
         const queryString = params.toString();
-        router.push(`/product${queryString ? `?${queryString}` : ""}`);
+        router.replace(`/product${queryString ? `?${queryString}` : ""}`, { scroll: false });
     };
 
     const handleSearchSubmit = (e) => {
@@ -551,7 +564,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                 <p className="text-xs text-slate-400 mt-1">Please wait a moment.</p>
                             </div>
                         ) : filteredAndSortedProducts.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4 transition-all duration-200">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4 border-0 outline-none">
                                 {filteredAndSortedProducts.map((product) => (
                                     <ProductCard
                                         key={product.id}

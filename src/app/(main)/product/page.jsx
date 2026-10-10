@@ -14,9 +14,9 @@ export default async function ProductPage({ searchParams }) {
     let initialProducts = [];
     let initialCategories = [];
 
-    // 1. Fetch initial products
+    // 1. Fetch catalog products (load full catalog so in-memory category & search transitions are 0ms instant)
     try {
-        let endpoint = "/api/product?limit=50";
+        let endpoint = "/api/product?limit=150";
         if (initialSearch) {
             endpoint += `&search=${encodeURIComponent(initialSearch)}`;
         }

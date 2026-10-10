@@ -1,5 +1,6 @@
 import { getProductBySlug, getRelatedProducts } from "@/lib/products";
 import ProductDetailsClient from "@/components/Products/ProductDetailsClient";
+import RelatedProductsSlider from "@/components/Products/RelatedProductsSlider";
 import { notFound } from "next/navigation";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.ekhone.com";
@@ -77,6 +78,13 @@ export async function generateMetadata({ params }) {
   };
 }
 
+import { Suspense } from "react";
+
+async function AsyncRelatedProducts({ subCategoryId, productId }) {
+  const relatedProducts = await getRelatedProducts(subCategoryId, productId, 8);
+  return <RelatedProductsSlider relatedProducts={relatedProducts} />;
+}
+
 // 2. Server Component page rendering with JSON-LD Schema markup for Google Rich Results
 export default async function ProductDetailsPage({ params }) {
   const resolvedParams = await params;
@@ -87,13 +95,6 @@ export default async function ProductDetailsPage({ params }) {
   if (!product) {
     notFound();
   }
-
-  // Fetch related products by subcategory
-  const relatedProducts = await getRelatedProducts(
-    product.subCategoryId || product.subCategory?.id,
-    product.id,
-    8
-  );
 
   // Construct JSON-LD Schema for Google Rich Snippet Search Optimization
   const primaryImage =
@@ -146,7 +147,26 @@ export default async function ProductDetailsPage({ params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <ProductDetailsClient product={product} relatedProducts={relatedProducts} />
+      <ProductDetailsClient
+        product={product}
+        relatedProductsSlot={
+          <Suspense fallback={
+            <div className="py-8">
+              <div className="h-6 w-48 bg-slate-200 rounded animate-pulse mb-6" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="aspect-square bg-slate-100 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            </div>
+          }>
+            <AsyncRelatedProducts
+              subCategoryId={product.subCategoryId || product.subCategory?.id}
+              productId={product.id}
+            />
+          </Suspense>
+        }
+      />
     </>
   );
 }

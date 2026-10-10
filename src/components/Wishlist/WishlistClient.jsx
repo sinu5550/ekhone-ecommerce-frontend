@@ -186,7 +186,14 @@ export default function WishlistClient() {
 
                                 {/* Actions: Move to Cart & Remove */}
                                 <div className="flex items-center justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
-                                    <WishlistCartButton product={item} />
+                                    <WishlistCartButton product={{
+                                        ...item,
+                                        image,
+                                        price: finalPrice,
+                                        originalPrice: origPrice,
+                                        discountPrice: finalPrice,
+                                        discountAmount: Math.max(0, origPrice - finalPrice),
+                                    }} />
                                     
                                     <button
                                         type="button"

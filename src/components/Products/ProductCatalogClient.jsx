@@ -50,6 +50,19 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
         setSortBy(urlSort);
     }, [urlSearch, urlCategory, urlSort]);
 
+    // Sync masterProducts when initialProducts prop updates from server
+    useEffect(() => {
+        if (initialProducts && initialProducts.length > 0) {
+            setMasterProducts((prev) => {
+                const map = new Map();
+                prev.forEach((p) => p?.id && map.set(p.id, p));
+                initialProducts.forEach((p) => p?.id && map.set(p.id, p));
+                return Array.from(map.values());
+            });
+            setIsInitialLoading(false);
+        }
+    }, [initialProducts]);
+
     // Update URL debounced in the background without causing page flicker
     useEffect(() => {
         if (searchInput === urlSearch) return;
@@ -175,7 +188,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
         }
 
         const queryString = params.toString();
-        router.push(`/product${queryString ? `?${queryString}` : ""}`);
+        router.replace(`/product${queryString ? `?${queryString}` : ""}`, { scroll: false });
     };
 
     const handleSearchSubmit = (e) => {

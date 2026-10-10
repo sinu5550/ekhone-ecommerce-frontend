@@ -31,7 +31,7 @@ export async function generateMetadata({ params }) {
     product.images?.[0] ||
     product.image ||
     product.productVariants?.[0]?.image ||
-    `${SITE_URL}/og-default.jpg`;
+    `${SITE_URL}/ekhone.png`;
 
   const canonicalUrl = `${SITE_URL}/product/${product.slug || slug}`;
   const brandName = product.brand?.name || product.brandName || "Ekhone";
@@ -100,7 +100,7 @@ export default async function ProductDetailsPage({ params }) {
     product.images?.[0] ||
     product.image ||
     product.productVariants?.[0]?.image ||
-    `${SITE_URL}/og-default.jpg`;
+    `${SITE_URL}/ekhone.png`;
 
   const jsonLd = {
     "@context": "https://schema.org/",

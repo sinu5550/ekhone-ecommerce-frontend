@@ -564,7 +564,7 @@ function ProductCatalogContent({ initialProducts = [], initialCategories = [] })
                                 <p className="text-xs text-slate-400 mt-1">Please wait a moment.</p>
                             </div>
                         ) : filteredAndSortedProducts.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4 transition-all duration-200">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4 border-0 outline-none">
                                 {filteredAndSortedProducts.map((product) => (
                                     <ProductCard
                                         key={product.id}

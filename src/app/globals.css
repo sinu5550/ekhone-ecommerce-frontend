@@ -57,6 +57,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Reset focus outline and eliminate box outline artifacts */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
 /* Hide scrollbar utility */
 .hide-scrollbar {
   -ms-overflow-style: none;

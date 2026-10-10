@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FaCheck } from "react-icons/fa6";
@@ -36,8 +36,9 @@ export default function ProductDetailsClient({
   const [selectedAttributes, setSelectedAttributes] = useState({});
   const [buyNowLoading, setBuyNowLoading] = useState(false);
   const [isInCart, setIsInCart] = useState(false);
-
   const isWishlisted = isInWishlist(product?.id);
+
+
 
   const getAllProductImages = () => {
     const baseImages = Array.isArray(product?.images) ? product.images : [];
@@ -337,6 +338,8 @@ export default function ProductDetailsClient({
                   </span>
                 </>
               )}
+
+
 
               {/* In Stock status */}
               <div className="ml-auto">

@@ -23,10 +23,10 @@ export const useCategories = (fallbackData = []) => {
         fetcher,
         {
             fallbackData,
-            revalidateOnFocus: true, // auto re-fetches as soon as user switches back to tab
-            revalidateOnReconnect: true,
-            refreshInterval: 10000, // checks every 10s automatically
-            dedupingInterval: 2000,
+            revalidateOnFocus: false, // do not re-fetch whenever user clicks or focuses the tab
+            revalidateOnReconnect: false,
+            refreshInterval: 0, // disable aggressive background polling
+            dedupingInterval: 60000, // cache for 1 minute in memory
         }
     );
 
@@ -47,9 +47,10 @@ export const useContact = (fallbackData = null) => {
         fetcher,
         {
             fallbackData,
-            revalidateOnFocus: true,
-            revalidateOnReconnect: true,
-            refreshInterval: 30000,
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+            refreshInterval: 0, // disable aggressive background polling
+            dedupingInterval: 60000, // cache for 1 minute in memory
         }
     );
 

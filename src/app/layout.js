@@ -30,6 +30,8 @@ import Script from "next/script";
 import PageTracker from "@/components/Analytics/PageTracker";
 import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import FloatingCart from "@/components/Cart/FloatingCart";
+import AiAssistantWidget from "@/components/AiAssistant/AiAssistantWidget";
+import WelcomeAudioPlayer from "@/components/AiAssistant/WelcomeAudioPlayer";
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-PN7QTP68';
 
@@ -165,6 +167,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <CartDrawerProvider>
           {children}
           <FloatingCart />
+          <WelcomeAudioPlayer />
+          <AiAssistantWidget />
         </CartDrawerProvider>
         <Toaster position="top-right" />
       </body>

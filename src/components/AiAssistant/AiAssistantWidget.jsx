@@ -167,7 +167,6 @@ export default function AiAssistantWidget() {
             type="button"
             onClick={() => {
               setIsOpen(true);
-              playWelcomeVoice();
             }}
             className="group relative flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-[#F45116] via-[#FF6B35] to-[#F45116] text-white font-bold text-xs sm:text-sm rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/40 cursor-pointer"
           >

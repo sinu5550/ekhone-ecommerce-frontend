@@ -194,11 +194,16 @@ const BillingDetails = ({
         watchDivision
       ].filter(Boolean).join(", ");
 
+      const isOutsideDhaka = watchDistrict && watchDistrict.toLowerCase() !== "dhaka";
+      const estimatedShippingCost = isOutsideDhaka
+        ? parseFloat(externalDeliveryCharges?.outside_dhaka || 150)
+        : parseFloat(externalDeliveryCharges?.inside_dhaka || 80);
+
       abandonmentDataRef.current = {
         name: (watchRecipientName || "").trim() || "Guest Customer",
         phone: cleanPhone,
         address: fullAddr || "Address not provided",
-        shippingCost: parseFloat(deliveryCost || 0),
+        shippingCost: estimatedShippingCost,
         items: items
       };
     } else {
@@ -212,7 +217,7 @@ const BillingDetails = ({
     watchDistrict,
     watchDivision,
     cartItems,
-    deliveryCost
+    externalDeliveryCharges
   ]);
 
   useEffect(() => {

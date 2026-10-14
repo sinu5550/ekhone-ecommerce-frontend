@@ -18,27 +18,28 @@ import CheckoutOrderBump from "@/components/Checkout/CheckoutOrderBump";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
 import { getVariantDisplayLabel } from "@/lib/variantHelpers";
 import { useUser } from "@/hooks/useUser";
-
-// Local safe helper to guarantee variant label formatting never throws ReferenceError
-const safeVariantDisplayLabel = (v) => {
-  if (typeof getVariantDisplayLabel === "function") {
-    try {
-      return getVariantDisplayLabel(v) || "";
-    } catch (_) {}
-  }
-  if (!v) return "";
-  if (v.attributes && typeof v.attributes === "object") {
-    const vals = Object.values(v.attributes).filter(Boolean);
-    if (vals.length > 0) return vals.join(" - ");
-  }
-  return [v.color, v.size].filter(Boolean).join(" - ") || "";
-};
 import { 
   trackBeginCheckout, 
   trackAddShippingInfo, 
   trackAddPaymentInfo, 
   trackPurchase 
 } from "@/utils/dataLayer";
+
+// Standalone safe helper to guarantee variant label formatting never throws ReferenceError
+function safeVariantDisplayLabel(v) {
+  try {
+    if (typeof getVariantDisplayLabel === "function") {
+      const res = getVariantDisplayLabel(v);
+      if (res) return res;
+    }
+  } catch (_) {}
+  if (!v) return "";
+  if (v.attributes && typeof v.attributes === "object") {
+    const vals = Object.values(v.attributes).filter(Boolean);
+    if (vals.length > 0) return vals.join(" - ");
+  }
+  return [v.color, v.size].filter(Boolean).join(" - ") || "";
+}
 
 export default function CheckoutClient({ initialContact = null }) {
   const router = useRouter();

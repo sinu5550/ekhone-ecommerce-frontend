@@ -16,6 +16,7 @@ import BillingDetails from "@/components/Checkout/BillingDetails";
 import OrderSummary from "@/components/Checkout/OrderSummary";
 import CheckoutOrderBump from "@/components/Checkout/CheckoutOrderBump";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
+import { getVariantDisplayLabel } from "@/lib/variantHelpers";
 import { useUser } from "@/hooks/useUser";
 import { 
   trackBeginCheckout, 

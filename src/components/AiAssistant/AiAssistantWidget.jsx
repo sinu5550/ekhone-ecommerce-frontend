@@ -8,6 +8,8 @@ import { apiClient } from "@/lib/apiClient";
 
 export default function AiAssistantWidget() {
   const pathname = usePathname();
+  const isLandingOrCheckout = pathname?.startsWith("/landing") || pathname?.startsWith("/checkout");
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -20,6 +22,11 @@ export default function AiAssistantWidget() {
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
+
+  // If on a dedicated landing page or checkout page, don't show the widget
+  if (isLandingOrCheckout) {
+    return null;
+  }
 
   // Helper to extract product slug if user is currently on /product/[slug]
   const getCurrentProductSlug = () => {

@@ -1,10 +1,8 @@
 "use client";
 
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useUser } from "@/hooks/useUser";
 import { apiClient } from "@/lib/apiClient";
-import { format } from "date-fns";
-import { ChevronRight, Home } from "lucide-react";
+import { ChevronRight, Home, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -207,7 +205,11 @@ export default function LoyaltyPointsPage() {
   };
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-10 h-10 animate-spin text-[#F45116]" />
+      </div>
+    );
   }
 
   if (!loyaltyData) {

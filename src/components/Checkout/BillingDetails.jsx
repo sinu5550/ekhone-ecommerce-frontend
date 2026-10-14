@@ -195,6 +195,7 @@ const BillingDetails = ({
   // Keep fresh abandonment data in ref & listen for browser exit
   const abandonmentDataRef = useRef(null);
   const abandonedSentRef = useRef(false);
+  const lastSentAddressRef = useRef("");
 
   useEffect(() => {
     const cleanPhone = (watchPhoneNumber || "").replace(/\D/g, "");
@@ -231,10 +232,15 @@ const BillingDetails = ({
         items: items,
       };
 
-      // Send to BizMation failed/abandoned orders API immediately once phone number is filled (debounced 1.5s)
+      // Send to BizMation failed/abandoned orders API immediately once phone number is filled,
+      // and re-send/update if address is also typed (debounced 1.5s)
+      const currentAddressSnapshot = fullAddr.trim();
+      const shouldTrigger = !abandonedSentRef.current || (currentAddressSnapshot.length >= 5 && currentAddressSnapshot !== lastSentAddressRef.current);
+
       const timer = setTimeout(() => {
-        if (abandonmentDataRef.current && !abandonedSentRef.current && !(typeof window !== "undefined" && window.__ekhone_order_placed__)) {
+        if (abandonmentDataRef.current && shouldTrigger && !(typeof window !== "undefined" && window.__ekhone_order_placed__)) {
           abandonedSentRef.current = true;
+          lastSentAddressRef.current = currentAddressSnapshot;
           sendAbandonedOrderCall(abandonmentDataRef.current);
         }
       }, 1500);

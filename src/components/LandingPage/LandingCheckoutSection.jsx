@@ -66,6 +66,7 @@ export default function LandingCheckoutSection({
     const orderPlacedRef = useRef(false);
     const abandonedSentRef = useRef(false);
     const abandonmentDataRef = useRef(null);
+    const lastSentAddressRef = useRef("");
     
     // Gallery & Lightbox Zoom Modal States
     const [modalGallery, setModalGallery] = useState([]); // [{ url, title, variantId }]
@@ -151,10 +152,15 @@ export default function LandingCheckoutSection({
                 items: items
             };
 
-            // Call failed/abandoned order API as soon as user types their phone number (debounced 1.5s)
+            // Call failed/abandoned order API as soon as user types their phone number,
+            // and re-send/update once address is also typed (debounced 1.5s)
+            const currentAddressSnapshot = fullAddress.trim();
+            const shouldTrigger = !abandonedSentRef.current || (currentAddressSnapshot.length >= 5 && currentAddressSnapshot !== lastSentAddressRef.current);
+
             const timer = setTimeout(() => {
-                if (abandonmentDataRef.current && !abandonedSentRef.current && !orderPlacedRef.current) {
+                if (abandonmentDataRef.current && shouldTrigger && !orderPlacedRef.current) {
                     abandonedSentRef.current = true;
+                    lastSentAddressRef.current = currentAddressSnapshot;
                     sendAbandonedOrderCall(abandonmentDataRef.current);
                 }
             }, 1500);

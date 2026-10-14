@@ -1,17 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { X } from "lucide-react";
 
 export default function PromotionalPopup() {
+  const pathname = usePathname();
+  const isLandingOrCheckout = pathname?.startsWith("/landing") || pathname?.startsWith("/checkout");
+
   const [banner, setBanner] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     // Only run in browser
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || isLandingOrCheckout) return;
 
     // Check if user has already seen and closed or interacted with popup in this session
     const alreadyShown = sessionStorage.getItem("ekhone_popup_shown");

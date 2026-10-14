@@ -1,7 +1,10 @@
 import Image from "next/image";
 import { Phone, ShieldCheck, Truck, RotateCcw } from "lucide-react";
+import { useStoreSettings } from "@/lib/dataFetch";
 
 export default function LandingMinimalFooter({ phone = "+8801969957888" }) {
+  const { storeSettings } = useStoreSettings();
+
   return (
     <footer
       id="landing-footer"
@@ -12,7 +15,7 @@ export default function LandingMinimalFooter({ phone = "+8801969957888" }) {
         <div className="inline-block bg-white rounded-lg px-4 py-1.5 shadow-sm">
           <div className="relative w-28 h-8">
             <Image
-              src="/ekhone.png"
+              src={storeSettings?.footerLogo || storeSettings?.logo || "/ekhone.png"}
               alt="Ekhone"
               fill
               className="object-contain"

@@ -3,8 +3,16 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 export async function apiClient(endpoint, options = {}) {
     const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
+    const token =
+        typeof window !== "undefined"
+            ? localStorage.getItem("supabase_access_token")
+            : null;
+
     const headers = {
         "Content-Type": "application/json",
+        ...(token && {
+            Authorization: `Bearer ${token}`,
+        }),
         ...(options.headers || {}),
     };
 

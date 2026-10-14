@@ -26,6 +26,38 @@ const BillingDetails = ({
   cartItems = [],
   deliveryCharges: externalDeliveryCharges = null,
 }) => {
+  const [localStoredUser, setLocalStoredUser] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("supabase_user");
+        return stored ? JSON.parse(stored) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (user) {
+      setLocalStoredUser(user);
+    }
+    const updateFromStorage = () => {
+      try {
+        const stored = localStorage.getItem("supabase_user");
+        setLocalStoredUser(stored ? JSON.parse(stored) : null);
+      } catch (_) {}
+    };
+    window.addEventListener("authChange", updateFromStorage);
+    window.addEventListener("storage", updateFromStorage);
+    return () => {
+      window.removeEventListener("authChange", updateFromStorage);
+      window.removeEventListener("storage", updateFromStorage);
+    };
+  }, [user]);
+
+  const effectiveUser = user || localStoredUser;
+
   const [customerId, setCustomerId] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,10 +89,10 @@ const BillingDetails = ({
       if (savedDetails) {
         const parsed = JSON.parse(savedDetails);
         if (parsed && typeof parsed === "object") {
-          if (!user?.fullName && parsed.recipientName) {
+          if (!effectiveUser?.fullName && parsed.recipientName) {
             setValue("recipientName", parsed.recipientName, { shouldDirty: true });
           }
-          if (!user?.phone && parsed.phoneNumber) {
+          if (!effectiveUser?.phone && parsed.phoneNumber) {
             setValue("phoneNumber", parsed.phoneNumber, { shouldDirty: true });
           }
           if (parsed.email) {
@@ -87,12 +119,15 @@ const BillingDetails = ({
       console.error("Error restoring cached shipping details:", e);
     }
 
-    if (user) {
-      if (user.fullName) setValue("recipientName", user.fullName);
-      if (user.phone) setValue("phoneNumber", user.phone);
-      if (user.email) setValue("email", user.email);
+    if (effectiveUser) {
+      const uName = effectiveUser.fullName || effectiveUser.user_metadata?.full_name;
+      const uPhone = effectiveUser.phone || effectiveUser.user_metadata?.phone;
+      const uEmail = effectiveUser.email;
+      if (uName) setValue("recipientName", uName);
+      if (uPhone) setValue("phoneNumber", uPhone);
+      if (uEmail) setValue("email", uEmail);
     }
-  }, [user, setValue]);
+  }, [effectiveUser, setValue]);
 
   // Debounced auto-save of entered shipping details to localStorage
   useEffect(() => {
@@ -138,7 +173,7 @@ const BillingDetails = ({
   // Fetch customer data and addresses if user is logged in
   useEffect(() => {
     const fetchCustomerData = async () => {
-      if (!user?.email) {
+      if (!effectiveUser?.email) {
         setIsLoading(false);
         return;
       }
@@ -146,7 +181,7 @@ const BillingDetails = ({
         setIsLoading(true);
         setError(null);
         const result = await apiClient(
-          `/api/customer/email/${encodeURIComponent(user.email)}`
+          `/api/customer/email/${encodeURIComponent(effectiveUser.email)}`
         );
         let customerData = null;
         if (result && result.success !== undefined) {
@@ -181,7 +216,7 @@ const BillingDetails = ({
     };
 
     fetchCustomerData();
-  }, [user?.email]);
+  }, [effectiveUser?.email]);
 
   // Filter districts based on division
   useEffect(() => {
@@ -677,25 +712,27 @@ const BillingDetails = ({
       </h2>
 
       {/* User Info Display */}
-      {user && (
+      {effectiveUser && (
         <div className="mb-6 p-4 bg-white border border-gray-200 rounded-xl shadow-xs">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-semibold text-gray-900">Logged in as: {user.fullName}</p>
-              <p className="text-sm text-gray-600">{user.email}</p>
+              <p className="font-semibold text-gray-900">
+                Logged in as: {effectiveUser.fullName || effectiveUser.user_metadata?.full_name || "User"}
+              </p>
+              <p className="text-sm text-gray-600">{effectiveUser.email}</p>
             </div>
             <Link
-              href="/profile"
+              href="/my-account"
               className="text-sm text-[#F45116] hover:underline font-medium"
             >
-              Edit Profile
+              My Account
             </Link>
           </div>
         </div>
       )}
 
       {/* Address Book View - When user has saved addresses */}
-      {user && customerId && addresses.length > 0 && !isAddingNewAddress ? (
+      {effectiveUser && customerId && addresses.length > 0 && !isAddingNewAddress ? (
         <div className="space-y-6">
           {/* Selected Address Display */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
@@ -792,9 +829,9 @@ const BillingDetails = ({
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-base md:text-lg text-gray-900 flex items-center gap-2">
                 <MapPin size={18} className="text-[#F45116]" />
-                <span>{user ? "Add New Shipping Address" : "Guest Shipping Details"}</span>
+                <span>{effectiveUser ? (addresses.length > 0 ? "Add New Shipping Address" : "Shipping Address") : "Guest Shipping Details"}</span>
               </h3>
-              {!user && (
+              {!effectiveUser && (
                 <Link
                   href="/login"
                   className="text-xs text-[#F45116] hover:underline font-semibold cursor-pointer"

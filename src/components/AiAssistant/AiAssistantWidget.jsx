@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Sparkles, Mic, MicOff, Volume2, VolumeX, Send, X, Bot, User, ShoppingBag } from "lucide-react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { Sparkles, Mic, MicOff, Volume2, VolumeX, Send, X, Bot, User, ExternalLink } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 
 export default function AiAssistantWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -17,7 +20,48 @@ export default function AiAssistantWidget() {
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
-  const [voiceGreetingPlayed, setVoiceGreetingPlayed] = useState(false);
+
+  // Helper to extract product slug if user is currently on /product/[slug]
+  const getCurrentProductSlug = () => {
+    if (!pathname) return null;
+    const match = pathname.match(/\/product\/([^\/?#]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  };
+
+  // Render message text with auto-linkified URLs
+  const renderMessageContent = (text) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        const isInternalProduct = part.includes('/product/');
+        let path = part;
+        try {
+          const parsed = new URL(part);
+          path = parsed.pathname + parsed.search;
+        } catch (_) {}
+
+        return (
+          <Link
+            key={index}
+            href={isInternalProduct ? path : part}
+            target={isInternalProduct ? "_self" : "_blank"}
+            rel="noopener noreferrer"
+            onClick={() => {
+              if (isInternalProduct) setIsOpen(false);
+            }}
+            className="inline-flex items-center gap-1 font-bold text-[#F45116] underline underline-offset-2 hover:text-[#D9400B] bg-orange-50 px-1.5 py-0.5 rounded mx-1 transition-colors"
+          >
+            <span>{isInternalProduct ? "পণ্যটি দেখুন ↗" : part}</span>
+            <ExternalLink size={11} className="inline shrink-0" />
+          </Link>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -135,9 +179,13 @@ export default function AiAssistantWidget() {
     setIsLoading(true);
 
     try {
+      const currentProductSlug = getCurrentProductSlug();
       const res = await apiClient("/api/ai/chat", {
         method: "POST",
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          currentProductId: currentProductSlug,
+        }),
       });
 
       const reply = res?.reply || res?.data?.reply || "দুঃখিত, কোনো উত্তর পাওয়া যায়নি।";
@@ -161,7 +209,7 @@ export default function AiAssistantWidget() {
   return (
     <>
       {/* Floating Launcher Button */}
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+      <div className="fixed bottom-6 right-6 z-[80] flex items-center gap-3">
         {!isOpen && (
           <button
             type="button"
@@ -182,7 +230,7 @@ export default function AiAssistantWidget() {
 
       {/* AI Assistant Chat Modal */}
       {isOpen && (
-        <div className="fixed bottom-6 right-4 sm:right-6 w-[92vw] sm:w-[380px] h-[520px] max-h-[85vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 right-4 sm:right-6 w-[92vw] sm:w-[400px] h-[550px] max-h-[88vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col z-[80] overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
           <div className="bg-gradient-to-r from-[#102D50] to-[#1E4675] text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -246,13 +294,15 @@ export default function AiAssistantWidget() {
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-2xs ${
+                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-2xs ${
                       isUser
                         ? "bg-[#F45116] text-white rounded-tr-none font-medium"
                         : "bg-white text-slate-800 border border-slate-200/80 rounded-tl-none font-normal"
                     }`}
                   >
-                    <p className="whitespace-pre-line">{msg.text}</p>
+                    <div className="whitespace-pre-line leading-relaxed">
+                      {isUser ? msg.text : renderMessageContent(msg.text)}
+                    </div>
                     {!isUser && (
                       <button
                         type="button"
@@ -303,14 +353,20 @@ export default function AiAssistantWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Prompts */}
-          <div className="px-3 py-1.5 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
-            {["ডেলিভারি চার্জ কত?", "ক্যাশ অন ডেলিভারি আছে?", "নতুন কী অফার আছে?"].map((prompt, idx) => (
+          {/* Quick Prompts - Flex wrap on desktop/mobile so all options are clearly visible */}
+          <div className="px-3 py-2 bg-slate-50/90 border-t border-slate-200/80 flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+            {[
+              "ডেলিভারি চার্জ কত?",
+              "কী কী কালার আছে?",
+              "ডিসকাউন্টে দাম কত?",
+              "ক্যাশ অন ডেলিভারি আছে?",
+              "প্রোডাক্ট লিংক দিন"
+            ].map((prompt, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSendMessage(prompt)}
-                className="whitespace-nowrap px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] rounded-full transition cursor-pointer font-medium"
+                className="px-2.5 py-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-[#F45116]/40 text-slate-700 hover:text-[#F45116] text-[11px] rounded-lg transition-colors cursor-pointer font-medium shadow-2xs"
               >
                 {prompt}
               </button>

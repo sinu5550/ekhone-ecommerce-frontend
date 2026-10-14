@@ -1,18 +1,21 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Phone, ShoppingBag, ShieldCheck } from "lucide-react";
+import { useStoreSettings } from "@/lib/dataFetch";
 
 export default function LandingMinimalHeader({
   phone = "+8801969957888",
   onOrderClick,
 }) {
+  const { storeSettings } = useStoreSettings();
+
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-amber-100/80 shadow-xs py-3">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between">
         {/* Brand Logo */}
         <div className="relative w-28 sm:w-32 h-9 sm:h-10">
           <Image
-            src="/ekhone.png"
+            src={storeSettings?.logo || "/ekhone.png"}
             alt="Ekhone"
             fill
             priority

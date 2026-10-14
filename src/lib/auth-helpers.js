@@ -200,23 +200,58 @@ export async function logout() {
     }
 }
 
+// In-memory cache & in-flight promise deduplication for getCurrentUser
+let currentUserPromise = null;
+let cachedUserData = null;
+let lastUserFetchTime = 0;
+const USER_CACHE_TTL = 30000; // 30 seconds
+
 // Get Current User
-export async function getCurrentUser() {
+export async function getCurrentUser(force = false) {
     try {
         const token = localStorage.getItem('supabase_access_token');
 
         if (!token) {
+            cachedUserData = null;
             return null;
         }
 
-        const response = await axios.get(`${API_URL}/api/auth/me`, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        const now = Date.now();
+        if (!force && cachedUserData && (now - lastUserFetchTime < USER_CACHE_TTL)) {
+            return cachedUserData;
+        }
 
-        return response.data?.data?.user || response.data?.user || null;
+        // If a request is already in-flight, return the existing promise
+        if (currentUserPromise) {
+            return await currentUserPromise;
+        }
+
+        currentUserPromise = (async () => {
+            try {
+                const response = await axios.get(`${API_URL}/api/auth/me`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                const user = response.data?.data?.user || response.data?.user || null;
+                cachedUserData = user;
+                lastUserFetchTime = Date.now();
+                if (user) {
+                    try {
+                        localStorage.setItem('supabase_user', JSON.stringify(user));
+                    } catch (_) {}
+                }
+                return user;
+            } finally {
+                currentUserPromise = null;
+            }
+        })();
+
+        return await currentUserPromise;
     } catch (error) {
+        cachedUserData = null;
+        currentUserPromise = null;
         // If token is invalid, clear it
         if (error.response?.status === 401) {
             localStorage.removeItem('supabase_access_token');

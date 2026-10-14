@@ -233,3 +233,41 @@ body {
 .hover-shake-x:hover {
   animation: shake-x 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
 }
+
+/* Global Dynamic Color Bridge: Force solid Tailwind hex classes to follow dynamic CSS theme variables */
+.text-\[\#F45116\],
+.text-\[\#f45116\] {
+  color: var(--primary) !important;
+}
+
+.bg-\[\#F45116\],
+.bg-\[\#f45116\] {
+  background-color: var(--primary) !important;
+}
+
+.border-\[\#F45116\],
+.border-\[\#f45116\] {
+  border-color: var(--primary) !important;
+}
+
+.ring-\[\#F45116\],
+.ring-\[\#f45116\] {
+  --tw-ring-color: var(--primary) !important;
+}
+
+.text-\[\#102D50\],
+.text-\[\#102d50\] {
+  color: var(--secound) !important;
+}
+
+.bg-\[\#102D50\],
+.bg-\[\#102d50\] {
+  background-color: var(--secound) !important;
+}
+
+.border-\[\#102D50\],
+.border-\[\#102d50\] {
+  border-color: var(--secound) !important;
+}
+
+

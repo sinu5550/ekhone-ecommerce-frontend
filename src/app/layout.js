@@ -32,79 +32,97 @@ import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import FloatingCart from "@/components/Cart/FloatingCart";
 import AiAssistantWidget from "@/components/AiAssistant/AiAssistantWidget";
 import WelcomeAudioPlayer from "@/components/AiAssistant/WelcomeAudioPlayer";
+import PromotionalPopup from "@/components/Shared/PromotionalPopup";
+import ThemeColorInjector from "@/components/Shared/ThemeColorInjector";
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-PN7QTP68';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.ekhone.com';
 
-export const metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: {
-    default: "Ekhone | Authentic Online Shopping in Bangladesh",
-    template: "%s | Ekhone",
-  },
-  description: "Ekhone is the best online shopping destination in Bangladesh. Shop 100% authentic electronics, fashion, lifestyle products, home essentials & accessories at the best prices with cash on delivery and fast nationwide delivery.",
-  keywords: [
-    "ekhone",
-    "ekhone bd",
-    "ekhone.xyz",
-    "ekhone online shop",
-    "Ekhone - Best Online Shopping Experience",
-    "online shopping bangladesh",
-    "best online shopping site",
-    "buy online bangladesh",
-    "authentic products bangladesh",
-    "electronics online shopping bd",
-    "fashion online shop bd",
-    "cash on delivery bangladesh",
-    "fast delivery online shop bd",
-  ],
-  authors: [{ name: "Ekhone", url: SITE_URL }],
-  creator: "Ekhone",
-  publisher: "Ekhone",
-  alternates: {
-    canonical: SITE_URL,
-  },
-  robots: {
-    index: true,
-    follow: true,
-    nocache: false,
-    googleBot: {
+export async function generateMetadata() {
+  let faviconUrl = "/ekhone.png";
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const res = await fetch(`${apiUrl}/store-settings`, { next: { revalidate: 30 } });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.data?.favicon) {
+        faviconUrl = data.data.favicon;
+      }
+    }
+  } catch (e) {
+    // fallback to /ekhone.png
+  }
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: {
+      default: "Ekhone | Authentic Online Shopping in Bangladesh",
+      template: "%s | Ekhone",
+    },
+    description: "Ekhone is the best online shopping destination in Bangladesh. Shop 100% authentic electronics, fashion, lifestyle products, home essentials & accessories at the best prices with cash on delivery and fast nationwide delivery.",
+    keywords: [
+      "ekhone",
+      "ekhone bd",
+      "ekhone.xyz",
+      "ekhone online shop",
+      "Ekhone - Best Online Shopping Experience",
+      "online shopping bangladesh",
+      "best online shopping site",
+      "buy online bangladesh",
+      "authentic products bangladesh",
+      "electronics online shopping bd",
+      "fashion online shop bd",
+      "cash on delivery bangladesh",
+      "fast delivery online shop bd",
+    ],
+    authors: [{ name: "Ekhone", url: SITE_URL }],
+    creator: "Ekhone",
+    publisher: "Ekhone",
+    alternates: {
+      canonical: SITE_URL,
+    },
+    robots: {
       index: true,
       follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-  openGraph: {
-    type: "website",
-    locale: "en_BD",
-    url: SITE_URL,
-    siteName: "Ekhone",
-    title: "Ekhone | Authentic Online Shopping in Bangladesh",
-    description: "Discover genuine electronics, fashion, and lifestyle products with express delivery nationwide across Bangladesh.",
-    images: [
-      {
-        url: "/ekhone.png",
-        width: 1200,
-        height: 630,
-        alt: "Ekhone - Best Online Shopping Experience",
+      nocache: false,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
       },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Ekhone | Authentic Online Shopping in Bangladesh",
-    description: "Discover genuine electronics, fashion, and lifestyle products with express delivery nationwide across Bangladesh.",
-    images: ["/ekhone.png"],
-  },
-  icons: {
-    icon: "/ekhone.png",
-    shortcut: "/ekhone.png",
-    apple: "/ekhone.png",
-  },
-};
+    },
+    openGraph: {
+      type: "website",
+      locale: "en_BD",
+      url: SITE_URL,
+      siteName: "Ekhone",
+      title: "Ekhone | Authentic Online Shopping in Bangladesh",
+      description: "Discover genuine electronics, fashion, and lifestyle products with express delivery nationwide across Bangladesh.",
+      images: [
+        {
+          url: "/ekhone.png",
+          width: 1200,
+          height: 630,
+          alt: "Ekhone - Best Online Shopping Experience",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "Ekhone | Authentic Online Shopping in Bangladesh",
+      description: "Discover genuine electronics, fashion, and lifestyle products with express delivery nationwide across Bangladesh.",
+      images: ["/ekhone.png"],
+    },
+    icons: {
+      icon: faviconUrl,
+      shortcut: faviconUrl,
+      apple: faviconUrl,
+    },
+  };
+}
 
 export default function RootLayout({ children }) {
   const organizationSchema = {
@@ -137,7 +155,7 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en">
-      <head>
+      <body className={`${plusJakartaSans.variable} ${inter.variable} ${manrope.variable} ${hindSiliguri.variable} antialiased min-h-screen flex flex-col bg-white text-slate-800`}>
         <Script
           id="google-tag-manager"
           strategy="afterInteractive"
@@ -153,8 +171,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
-      </head>
-      <body className={`${plusJakartaSans.variable} ${inter.variable} ${manrope.variable} ${hindSiliguri.variable} antialiased min-h-screen flex flex-col bg-white text-slate-800`}>
         <noscript>
           <iframe
             src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
@@ -164,11 +180,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           />
         </noscript>
         <PageTracker />
+        <ThemeColorInjector />
         <CartDrawerProvider>
           {children}
           <FloatingCart />
           <WelcomeAudioPlayer />
           <AiAssistantWidget />
+          <PromotionalPopup />
         </CartDrawerProvider>
         <Toaster position="top-right" />
       </body>

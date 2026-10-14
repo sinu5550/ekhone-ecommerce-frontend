@@ -87,13 +87,13 @@ export default function ShopCategorySection({ categories = [] }) {
                                 href={`/product?category=${encodeURIComponent(category.name)}`}
                                 className="group w-[120px] sm:w-[135px] md:w-[145px] shrink-0 bg-[#F8F9FA] hover:bg-white p-3 rounded-2xl border border-slate-100 hover:border-primary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center text-center text-slate-800"
                             >
-                                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden mb-2 bg-white flex items-center justify-center shadow-2xs">
+                                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden mb-2 bg-white flex items-center justify-center shadow-2xs">
                                     <Image
                                         src={imageUrl}
                                         alt={category.name}
                                         fill
                                         sizes="100px"
-                                        className="object-contain p-2 group-hover:scale-110 transition-transform duration-300"
+                                        className="object-contain p-2 group-hover:scale-110 transition-transform duration-300 rounded-xl"
                                     />
                                 </div>
                                 <h3 className="text-xs font-semibold text-slate-800 group-hover:text-primary transition-colors line-clamp-1 w-full">

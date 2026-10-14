@@ -553,6 +553,10 @@ export default function CheckoutClient({ initialContact = null }) {
         throw new Error("Order created but missing order ID");
       }
 
+      if (typeof window !== "undefined") {
+        window.__ekhone_order_placed__ = true;
+      }
+
       // Track purchase event in DataLayer with real transaction/order data (deduplicated)
       trackPurchase(orderData, items);
 

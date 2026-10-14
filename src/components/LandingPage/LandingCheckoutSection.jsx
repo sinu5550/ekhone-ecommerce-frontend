@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { 
     ShoppingBag, 
@@ -36,6 +36,7 @@ import { toast } from "react-hot-toast";
 import { apiClient } from "@/lib/apiClient";
 import { trackBeginCheckout, trackPurchase } from "@/utils/dataLayer";
 import { getVariantColorInfo, getVariantDisplayLabel } from "@/lib/variantHelpers";
+import { sendAbandonedOrderBeacon } from "@/lib/abandonedOrderTracker";
 
 export default function LandingCheckoutSection({ 
     landingPage,
@@ -62,6 +63,9 @@ export default function LandingCheckoutSection({
     const [includeBump, setIncludeBump] = useState(false); // Order bump toggle
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [orderSuccess, setOrderSuccess] = useState(null);
+    const orderPlacedRef = useRef(false);
+    const abandonedSentRef = useRef(false);
+    const abandonmentDataRef = useRef(null);
     
     // Gallery & Lightbox Zoom Modal States
     const [modalGallery, setModalGallery] = useState([]); // [{ url, title, variantId }]
@@ -110,6 +114,80 @@ export default function LandingCheckoutSection({
     const discountedTotal = Math.max(0, totalBeforeDiscount - bumpDiscountAmount);
     // Grand Total including delivery fee
     const grandTotal = discountedTotal + deliveryFee;
+
+    // Keep abandonment tracking state fresh
+    useEffect(() => {
+        const cleanPhone = (phoneNumber || "").replace(/\D/g, "");
+        if (cleanPhone.length >= 11) {
+            const items = [
+                {
+                    productId: product.id,
+                    productName: selectedVariant
+                        ? `${product.productName || "Product"} (${getVariantLabel(selectedVariant)})`
+                        : (product.productName || "Product"),
+                    price: unitPrice,
+                    quantity: quantity,
+                    variant: selectedVariant || null
+                }
+            ];
+
+            if (includeBump && bumpProduct) {
+                items.push({
+                    productId: bumpProduct.id,
+                    productName: selectedBumpVariant
+                        ? `${bumpProduct.productName} (${getVariantLabel(selectedBumpVariant)})`
+                        : bumpProduct.productName,
+                    price: Math.max(0, bumpUnitPrice - bumpDiscountAmount),
+                    quantity: 1,
+                    variant: selectedBumpVariant || null
+                });
+            }
+
+            abandonmentDataRef.current = {
+                name: fullName.trim() || "Guest Customer",
+                phone: cleanPhone,
+                address: fullAddress.trim() || (deliveryArea === "inside" ? "Dhaka City" : "Outside Dhaka"),
+                shippingCost: deliveryFee,
+                items: items
+            };
+        } else {
+            abandonmentDataRef.current = null;
+        }
+    }, [
+        fullName,
+        phoneNumber,
+        fullAddress,
+        deliveryArea,
+        deliveryFee,
+        product,
+        selectedVariant,
+        unitPrice,
+        quantity,
+        includeBump,
+        bumpProduct,
+        selectedBumpVariant,
+        bumpUnitPrice,
+        bumpDiscountAmount
+    ]);
+
+    // Send abandoned order beacon if customer leaves without placing order
+    useEffect(() => {
+        const handleExit = () => {
+            if (orderPlacedRef.current || abandonedSentRef.current) return;
+            if (abandonmentDataRef.current) {
+                abandonedSentRef.current = true;
+                sendAbandonedOrderBeacon(abandonmentDataRef.current);
+            }
+        };
+
+        window.addEventListener("beforeunload", handleExit);
+        window.addEventListener("pagehide", handleExit);
+
+        return () => {
+            window.removeEventListener("beforeunload", handleExit);
+            window.removeEventListener("pagehide", handleExit);
+        };
+    }, []);
 
     // Synchronize current total price with parent/floating bottom bar
     useEffect(() => {
@@ -336,6 +414,7 @@ export default function LandingCheckoutSection({
             });
 
             if (response.success || response.id || response.orderNumber) {
+                orderPlacedRef.current = true;
                 const orderData = response.data || response;
                 const orderNum = orderData.orderNumber || response.orderNumber || response.id;
                 

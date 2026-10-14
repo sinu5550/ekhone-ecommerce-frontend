@@ -1,7 +1,7 @@
 // components/Checkout/BillingDetails.jsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { divisions, districts, upazilas } from "@/lib/data";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import Swal from "sweetalert2";
 import Image from "next/image";
 import { FaLongArrowAltRight } from "react-icons/fa";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
+import { sendAbandonedOrderBeacon } from "@/lib/abandonedOrderTracker";
 
 const BillingDetails = ({
   user = null,
@@ -129,7 +130,7 @@ const BillingDetails = ({
     }
   }, [effectiveUser, setValue]);
 
-  // Debounced auto-save of entered shipping details to localStorage
+  // Debounced auto-save of entered shipping details to localStorage...
   useEffect(() => {
     if (typeof window === "undefined") return;
     const timer = setTimeout(() => {
@@ -169,6 +170,70 @@ const BillingDetails = ({
     watchUpazila,
     watchType,
   ]);
+
+  // Keep fresh abandonment data in ref & listen for browser exit
+  const abandonmentDataRef = useRef(null);
+  const abandonedSentRef = useRef(false);
+
+  useEffect(() => {
+    const cleanPhone = (watchPhoneNumber || "").replace(/\D/g, "");
+    if (cleanPhone.length >= 11) {
+      const items = (cartItems || []).map((item) => ({
+        productId: item.productId || item.id,
+        productName: item.productName || item.name || item.title || "Product",
+        price: parseFloat(item.price || item.unitPrice || 0),
+        quantity: parseInt(item.quantity || 1, 10),
+        variant: item.variant || null,
+        attributes: item.variantAttributes || item.attributes || null
+      }));
+
+      const fullAddr = [
+        watchAddress,
+        watchUpazila,
+        watchDistrict,
+        watchDivision
+      ].filter(Boolean).join(", ");
+
+      abandonmentDataRef.current = {
+        name: (watchRecipientName || "").trim() || "Guest Customer",
+        phone: cleanPhone,
+        address: fullAddr || "Address not provided",
+        shippingCost: parseFloat(deliveryCost || 0),
+        items: items
+      };
+    } else {
+      abandonmentDataRef.current = null;
+    }
+  }, [
+    watchRecipientName,
+    watchPhoneNumber,
+    watchAddress,
+    watchUpazila,
+    watchDistrict,
+    watchDivision,
+    cartItems,
+    deliveryCost
+  ]);
+
+  useEffect(() => {
+    const handleExit = () => {
+      // If user has successfully submitted the order, do not send abandoned beacon
+      if (typeof window !== "undefined" && window.__ekhone_order_placed__) return;
+      if (abandonedSentRef.current) return;
+      if (abandonmentDataRef.current) {
+        abandonedSentRef.current = true;
+        sendAbandonedOrderBeacon(abandonmentDataRef.current);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleExit);
+    window.addEventListener("pagehide", handleExit);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleExit);
+      window.removeEventListener("pagehide", handleExit);
+    };
+  }, []);
 
   // Fetch customer data and addresses if user is logged in
   useEffect(() => {

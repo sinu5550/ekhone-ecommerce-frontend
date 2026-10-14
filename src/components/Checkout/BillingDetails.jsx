@@ -5,12 +5,24 @@ import React, { useState, useEffect, useRef } from "react";
 import { apiClient } from "@/lib/apiClient";
 import { divisions, districts, upazilas } from "@/lib/data";
 import Link from "next/link";
-import { Home, Briefcase, MapPin, Plus, Star, X, Truck, CreditCard, FileText, User, Phone, Mail } from "lucide-react";
+import {
+  Home,
+  Briefcase,
+  MapPin,
+  Plus,
+  Star,
+  X,
+  Truck,
+  CreditCard,
+  FileText,
+  User,
+  Phone,
+  Mail,
+} from "lucide-react";
 import Swal from "sweetalert2";
 import Image from "next/image";
 import { FaLongArrowAltRight } from "react-icons/fa";
-import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
-import { sendAbandonedOrderBeacon } from "@/lib/abandonedOrderTracker";
+import { sendAbandonedOrderBeacon, sendAbandonedOrderCall } from "@/lib/abandonedOrderTracker";
 
 const BillingDetails = ({
   user = null,
@@ -86,12 +98,16 @@ const BillingDetails = ({
     if (typeof window === "undefined") return;
 
     try {
-      const savedDetails = localStorage.getItem("ekhone_checkout_shipping_details");
+      const savedDetails = localStorage.getItem(
+        "ekhone_checkout_shipping_details",
+      );
       if (savedDetails) {
         const parsed = JSON.parse(savedDetails);
         if (parsed && typeof parsed === "object") {
           if (!effectiveUser?.fullName && parsed.recipientName) {
-            setValue("recipientName", parsed.recipientName, { shouldDirty: true });
+            setValue("recipientName", parsed.recipientName, {
+              shouldDirty: true,
+            });
           }
           if (!effectiveUser?.phone && parsed.phoneNumber) {
             setValue("phoneNumber", parsed.phoneNumber, { shouldDirty: true });
@@ -121,7 +137,8 @@ const BillingDetails = ({
     }
 
     if (effectiveUser) {
-      const uName = effectiveUser.fullName || effectiveUser.user_metadata?.full_name;
+      const uName =
+        effectiveUser.fullName || effectiveUser.user_metadata?.full_name;
       const uPhone = effectiveUser.phone || effectiveUser.user_metadata?.phone;
       const uEmail = effectiveUser.email;
       if (uName) setValue("recipientName", uName);
@@ -154,7 +171,10 @@ const BillingDetails = ({
             address: watchAddress || "",
             type: watchType || "Home",
           };
-          localStorage.setItem("ekhone_checkout_shipping_details", JSON.stringify(toSave));
+          localStorage.setItem(
+            "ekhone_checkout_shipping_details",
+            JSON.stringify(toSave),
+          );
         } catch (e) {}
       }
     }, 400);
@@ -184,17 +204,20 @@ const BillingDetails = ({
         price: parseFloat(item.price || item.unitPrice || 0),
         quantity: parseInt(item.quantity || 1, 10),
         variant: item.variant || null,
-        attributes: item.variantAttributes || item.attributes || null
+        attributes: item.variantAttributes || item.attributes || null,
       }));
 
       const fullAddr = [
         watchAddress,
         watchUpazila,
         watchDistrict,
-        watchDivision
-      ].filter(Boolean).join(", ");
+        watchDivision,
+      ]
+        .filter(Boolean)
+        .join(", ");
 
-      const isOutsideDhaka = watchDistrict && watchDistrict.toLowerCase() !== "dhaka";
+      const isOutsideDhaka =
+        watchDistrict && watchDistrict.toLowerCase() !== "dhaka";
       const estimatedShippingCost = isOutsideDhaka
         ? parseFloat(externalDeliveryCharges?.outside_dhaka || 150)
         : parseFloat(externalDeliveryCharges?.inside_dhaka || 80);
@@ -204,8 +227,18 @@ const BillingDetails = ({
         phone: cleanPhone,
         address: fullAddr || "Address not provided",
         shippingCost: estimatedShippingCost,
-        items: items
+        items: items,
       };
+
+      // Send to BizMation failed/abandoned orders API immediately once phone number is filled (debounced 1.5s)
+      const timer = setTimeout(() => {
+        if (abandonmentDataRef.current && !abandonedSentRef.current && !(typeof window !== "undefined" && window.__ekhone_order_placed__)) {
+          abandonedSentRef.current = true;
+          sendAbandonedOrderCall(abandonmentDataRef.current);
+        }
+      }, 1500);
+
+      return () => clearTimeout(timer);
     } else {
       abandonmentDataRef.current = null;
     }
@@ -217,15 +250,15 @@ const BillingDetails = ({
     watchDistrict,
     watchDivision,
     cartItems,
-    externalDeliveryCharges
+    externalDeliveryCharges,
   ]);
 
   useEffect(() => {
     const handleExit = () => {
       // If user has successfully submitted the order, do not send abandoned beacon
-      if (typeof window !== "undefined" && window.__ekhone_order_placed__) return;
-      if (abandonedSentRef.current) return;
-      if (abandonmentDataRef.current) {
+      if (typeof window !== "undefined" && window.__ekhone_order_placed__)
+        return;
+      if (abandonmentDataRef.current && !abandonedSentRef.current) {
         abandonedSentRef.current = true;
         sendAbandonedOrderBeacon(abandonmentDataRef.current);
       }
@@ -251,7 +284,7 @@ const BillingDetails = ({
         setIsLoading(true);
         setError(null);
         const result = await apiClient(
-          `/api/customer/email/${encodeURIComponent(effectiveUser.email)}`
+          `/api/customer/email/${encodeURIComponent(effectiveUser.email)}`,
         );
         let customerData = null;
         if (result && result.success !== undefined) {
@@ -266,7 +299,7 @@ const BillingDetails = ({
           setCustomerId(customerData.id);
           setAddresses(customerData.customerAddresses || []);
           const defaultAddr = customerData.customerAddresses?.find(
-            (addr) => addr.isDefault
+            (addr) => addr.isDefault,
           );
           if (defaultAddr) {
             setSelectedAddress(defaultAddr.id);
@@ -294,7 +327,7 @@ const BillingDetails = ({
       const divisionData = divisions.find((div) => div.name === watchDivision);
       if (divisionData) {
         const districtList = districts.filter(
-          (dist) => dist.division_id === divisionData.id
+          (dist) => dist.division_id === divisionData.id,
         );
         setFilteredDistricts(districtList);
         setValue("city", watchDivision);
@@ -311,7 +344,7 @@ const BillingDetails = ({
   useEffect(() => {
     if (watchDistrict) {
       const districtData = districts.find(
-        (dist) => dist.name === watchDistrict
+        (dist) => dist.name === watchDistrict,
       );
       if (districtData) {
         const upazilaList = upazilas
@@ -428,10 +461,9 @@ const BillingDetails = ({
         return;
       }
 
-      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(
-        /\/+$/,
-        ""
-      );
+      const apiUrl = (
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      ).replace(/\/+$/, "");
 
       // Step 1: Check if Customer already exists by email
       let targetCustomerId = customerId;
@@ -439,7 +471,7 @@ const BillingDetails = ({
       if (!targetCustomerId && emailToUse) {
         try {
           const customerRes = await fetch(
-            `${apiUrl}/api/customer/email/${encodeURIComponent(emailToUse)}`
+            `${apiUrl}/api/customer/email/${encodeURIComponent(emailToUse)}`,
           );
           const customerData = await customerRes.json();
 
@@ -465,9 +497,7 @@ const BillingDetails = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fullName: recipientName || "Guest Customer",
-            email:
-              emailToUse ||
-              `guest_${cleanPhone || Date.now()}@ekhone.com`,
+            email: emailToUse || `guest_${cleanPhone || Date.now()}@ekhone.com`,
             phone: cleanPhone,
             status: true,
           }),
@@ -493,7 +523,7 @@ const BillingDetails = ({
 
         if (!targetCustomerId) {
           throw new Error(
-            createCustomerData.message || "Failed to create customer record"
+            createCustomerData.message || "Failed to create customer record",
           );
         }
       }
@@ -519,7 +549,7 @@ const BillingDetails = ({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(addressPayload),
-        }
+        },
       );
 
       const createAddressData = await createAddressRes.json();
@@ -529,7 +559,7 @@ const BillingDetails = ({
         !createAddressData.id
       ) {
         throw new Error(
-          createAddressData.message || "Failed to create shipping address"
+          createAddressData.message || "Failed to create shipping address",
         );
       }
 
@@ -566,7 +596,7 @@ const BillingDetails = ({
     if (errorKeys.length > 0) {
       const firstKey = errorKeys[0];
       const errorElement = document.querySelector(
-        `[name="${firstKey}"], #${firstKey}`
+        `[name="${firstKey}"], #${firstKey}`,
       );
       if (errorElement) {
         errorElement.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -601,9 +631,19 @@ const BillingDetails = ({
   }
 
   const renderPrice = (price) => {
-    if (price === null || price === undefined) return <span><span className="font-black">৳</span>0</span>;
+    if (price === null || price === undefined)
+      return (
+        <span>
+          <span className="font-black">৳</span>0
+        </span>
+      );
     const priceNumber = parseFloat(price);
-    if (isNaN(priceNumber)) return <span><span className="font-black">৳</span>0</span>;
+    if (isNaN(priceNumber))
+      return (
+        <span>
+          <span className="font-black">৳</span>0
+        </span>
+      );
     const ceilPrice = Math.ceil(priceNumber);
     return (
       <span>
@@ -787,7 +827,10 @@ const BillingDetails = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="font-semibold text-gray-900">
-                Logged in as: {effectiveUser.fullName || effectiveUser.user_metadata?.full_name || "User"}
+                Logged in as:{" "}
+                {effectiveUser.fullName ||
+                  effectiveUser.user_metadata?.full_name ||
+                  "User"}
               </p>
               <p className="text-sm text-gray-600">{effectiveUser.email}</p>
             </div>
@@ -802,7 +845,10 @@ const BillingDetails = ({
       )}
 
       {/* Address Book View - When user has saved addresses */}
-      {effectiveUser && customerId && addresses.length > 0 && !isAddingNewAddress ? (
+      {effectiveUser &&
+      customerId &&
+      addresses.length > 0 &&
+      !isAddingNewAddress ? (
         <div className="space-y-6">
           {/* Selected Address Display */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
@@ -841,19 +887,25 @@ const BillingDetails = ({
                   </p>
                   {(() => {
                     const sel = addresses.find((a) => a.id === selectedAddress);
-                    const cityUpazila = [sel.upazila, sel.district].filter(Boolean).join(", ");
+                    const cityUpazila = [sel.upazila, sel.district]
+                      .filter(Boolean)
+                      .join(", ");
                     return (
                       <>
-                        {cityUpazila && <p className="text-gray-600 text-sm">{cityUpazila}</p>}
+                        {cityUpazila && (
+                          <p className="text-gray-600 text-sm">{cityUpazila}</p>
+                        )}
                         {sel.division && sel.division !== sel.district && (
-                          <p className="text-gray-600 text-sm">{sel.division}</p>
+                          <p className="text-gray-600 text-sm">
+                            {sel.division}
+                          </p>
                         )}
                       </>
                     );
                   })()}
                   <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-gray-100 rounded-full text-xs">
                     {getIcon(
-                      addresses.find((a) => a.id === selectedAddress).type
+                      addresses.find((a) => a.id === selectedAddress).type,
                     )}
                     <span className="text-gray-700 font-semibold">
                       {addresses.find((a) => a.id === selectedAddress).type}
@@ -899,7 +951,13 @@ const BillingDetails = ({
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-base md:text-lg text-gray-900 flex items-center gap-2">
                 <MapPin size={18} className="text-[#F45116]" />
-                <span>{effectiveUser ? (addresses.length > 0 ? "Add New Shipping Address" : "Shipping Address") : "Guest Shipping Details"}</span>
+                <span>
+                  {effectiveUser
+                    ? addresses.length > 0
+                      ? "Add New Shipping Address"
+                      : "Shipping Address"
+                    : "Guest Shipping Details"}
+                </span>
               </h3>
               {!effectiveUser && (
                 <Link
@@ -969,7 +1027,7 @@ const BillingDetails = ({
                       if (!value || value.trim() === "") return true;
                       return (
                         /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(
-                          value.trim()
+                          value.trim(),
                         ) || "Invalid email address"
                       );
                     },
@@ -998,14 +1056,21 @@ const BillingDetails = ({
                       <button
                         key={value}
                         type="button"
-                        onClick={() => setValue("type", value, { shouldDirty: true })}
+                        onClick={() =>
+                          setValue("type", value, { shouldDirty: true })
+                        }
                         className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-[8px] border text-xs md:text-sm transition-all cursor-pointer ${
                           isSelected
                             ? "border-[#F45116] bg-[#F45116]/10 text-[#F45116] font-bold shadow-xs"
                             : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                         }`}
                       >
-                        <Icon size={14} className={isSelected ? "text-[#F45116]" : "text-gray-400"} />
+                        <Icon
+                          size={14}
+                          className={
+                            isSelected ? "text-[#F45116]" : "text-gray-400"
+                          }
+                        />
                         <span>{label}</span>
                       </button>
                     );
@@ -1017,18 +1082,34 @@ const BillingDetails = ({
 
           <div className="space-y-4 mb-6">
             <input type="hidden" {...register("country")} value="Bangladesh" />
-            <input type="hidden" {...register("division")} value={watchDivision || ""} />
-            <input type="hidden" {...register("district")} value={watchDistrict || ""} />
-            <input type="hidden" {...register("upazila")} value={watchUpazila || ""} />
+            <input
+              type="hidden"
+              {...register("division")}
+              value={watchDivision || ""}
+            />
+            <input
+              type="hidden"
+              {...register("district")}
+              value={watchDistrict || ""}
+            />
+            <input
+              type="hidden"
+              {...register("upazila")}
+              value={watchUpazila || ""}
+            />
 
             <div>
               <label className="block mb-1 font-medium text-xs md:text-sm text-gray-900">
-                Full Street Address (সম্পূর্ণ ঠিকানা) <span className="text-red-500">*</span>
+                Full Street Address (সম্পূর্ণ ঠিকানা){" "}
+                <span className="text-red-500">*</span>
               </label>
               <textarea
                 {...register("address", {
                   required: "Address is required",
-                  minLength: { value: 6, message: "Please provide a detailed street address" },
+                  minLength: {
+                    value: 6,
+                    message: "Please provide a detailed street address",
+                  },
                 })}
                 placeholder="বাসা/হোল্ডিং নম্বর, রোড/সেক্টর, থানা, জেলা (e.g. Block #D, Road #2, Sector #10, House #15, Uttara, Dhaka)"
                 className="w-full text-xs md:text-sm placeholder:text-xs md:placeholder:text-sm px-3 md:px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#F45116] focus:border-[#F45116] transition-all h-20 md:h-24 bg-white text-gray-900"
@@ -1084,7 +1165,9 @@ const BillingDetails = ({
                     <div
                       key={address.id}
                       className={`relative bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-md ${
-                        isSelected ? "border-[#F45116] shadow-md" : "border-gray-200 hover:border-[#F45116]/40"
+                        isSelected
+                          ? "border-[#F45116] shadow-md"
+                          : "border-gray-200 hover:border-[#F45116]/40"
                       }`}
                       onClick={() => handleAddressSelect(address)}
                     >
@@ -1110,19 +1193,28 @@ const BillingDetails = ({
                         </div>
                         <div className="text-xs text-gray-600 space-y-0.5">
                           <p>{address.address}</p>
-                          {[address.upazila, address.district].filter(Boolean).length > 0 && (
-                            <p>{[address.upazila, address.district].filter(Boolean).join(", ")}</p>
+                          {[address.upazila, address.district].filter(Boolean)
+                            .length > 0 && (
+                            <p>
+                              {[address.upazila, address.district]
+                                .filter(Boolean)
+                                .join(", ")}
+                            </p>
                           )}
                           {(address.division || address.postalCode) && (
                             <p>
-                              {[address.division, address.postalCode].filter(Boolean).join(" - ")}
+                              {[address.division, address.postalCode]
+                                .filter(Boolean)
+                                .join(" - ")}
                             </p>
                           )}
                         </div>
                         <div className="flex items-center justify-center pt-2">
                           <div
                             className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
-                              isSelected ? "border-[#F45116] bg-[#F45116]" : "border-gray-300"
+                              isSelected
+                                ? "border-[#F45116] bg-[#F45116]"
+                                : "border-gray-300"
                             }`}
                           >
                             {isSelected && (

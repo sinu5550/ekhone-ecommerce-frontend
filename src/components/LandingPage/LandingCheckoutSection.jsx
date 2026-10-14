@@ -35,8 +35,7 @@ import {
 import { toast } from "react-hot-toast";
 import { apiClient } from "@/lib/apiClient";
 import { trackBeginCheckout, trackPurchase } from "@/utils/dataLayer";
-import { getVariantColorInfo, getVariantDisplayLabel } from "@/lib/variantHelpers";
-import { sendAbandonedOrderBeacon } from "@/lib/abandonedOrderTracker";
+import { sendAbandonedOrderBeacon, sendAbandonedOrderCall } from "@/lib/abandonedOrderTracker";
 
 export default function LandingCheckoutSection({ 
     landingPage,
@@ -150,6 +149,16 @@ export default function LandingCheckoutSection({
                 shippingCost: deliveryFee,
                 items: items
             };
+
+            // Call failed/abandoned order API as soon as user types their phone number (debounced 1.5s)
+            const timer = setTimeout(() => {
+                if (abandonmentDataRef.current && !abandonedSentRef.current && !orderPlacedRef.current) {
+                    abandonedSentRef.current = true;
+                    sendAbandonedOrderCall(abandonmentDataRef.current);
+                }
+            }, 1500);
+
+            return () => clearTimeout(timer);
         } else {
             abandonmentDataRef.current = null;
         }

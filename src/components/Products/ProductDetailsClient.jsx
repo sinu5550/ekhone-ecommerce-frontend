@@ -221,7 +221,7 @@ export default function ProductDetailsClient({
     setIsInCart(true);
   };
 
-  const supportPhone = (contactData?.phone_number || contactData?.telephone || "01909750608").replace(/\D/g, "");
+  const supportPhone = (contactData?.phone_number || contactData?.telephone || "01969957888").replace(/\D/g, "");
   const whatsappNumber = supportPhone.startsWith("88") ? supportPhone : `88${supportPhone}`;
 
   return (
@@ -418,7 +418,7 @@ export default function ProductDetailsClient({
               </div>
             )}
 
-            {/* Action Buttons: 4 button layout exactly like Dazzling Diva */}
+            {/* Action Buttons: 4 button layout */}
             <div className="space-y-3 pt-2">
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                 {/* Add to Cart */}

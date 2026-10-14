@@ -252,13 +252,13 @@ export default function HomeHero({ heroSliders = [], featuredProducts = [] }) {
                                         <span className="truncate">{slide.shopBadge}</span>
                                     </div>
 
-                                    {/* Product Image Frame with Slide Arrows */}
-                                    <div className="relative w-full h-44 sm:h-48 rounded-xl overflow-hidden bg-slate-50 flex items-center justify-center group">
+                                    {/* Product Image Frame with Slide Arrows (1:1 Aspect Ratio) */}
+                                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-slate-50 flex items-center justify-center group">
                                         <Image
                                             src={slide.productImage}
                                             alt={slide.productTitle}
                                             fill
-                                            className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                                            className="object-cover p-2 rounded-xl group-hover:scale-105 transition-transform duration-300"
                                             unoptimized
                                         />
 

@@ -86,8 +86,8 @@ export default function FloatingCart() {
                     moveEvent.preventDefault();
                 }
                 const height = cartWidgetRef.current?.offsetHeight || 110;
-                const min = 65;
-                const max = window.innerHeight - height - 65;
+                const min = 10;
+                const max = window.innerHeight - height - 10;
                 const newTop = Math.max(min, Math.min(max, dragInfoRef.current.startTop + deltaY));
                 setCartTop(newTop);
             }
@@ -148,8 +148,8 @@ export default function FloatingCart() {
             style={{
                 top: cartTop !== null ? `${cartTop}px` : '45%',
             }}
-            className={`fixed right-0 z-40 touch-none select-none ${
-                isDragging ? 'cursor-grabbing shadow-2xl transition-none' : 'cursor-grab'
+            className={`fixed right-0 z-[60] touch-none select-none ${
+                isDragging ? 'cursor-grabbing shadow-2xl transition-none z-[70]' : 'cursor-grab'
             }`}
             title="Drag to reposition cart or click to view bag"
         >

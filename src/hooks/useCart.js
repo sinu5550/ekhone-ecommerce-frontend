@@ -68,6 +68,13 @@ export const useCart = () => {
                 stockQuantity: product.stockQuantity ?? product.quantity ?? null,
                 insideDhakaDeliveryCharge: product.insideDhakaDeliveryCharge ?? null,
                 outsideDhakaDeliveryCharge: product.outsideDhakaDeliveryCharge ?? null,
+                // Order Bump fields
+                orderBumpProductId: product.orderBumpProductId || null,
+                orderBumpProduct: product.orderBumpProduct || null,
+                orderBumpTitle: product.orderBumpTitle || null,
+                orderBumpSubtitle: product.orderBumpSubtitle || null,
+                orderBumpDiscount: product.orderBumpDiscount != null ? parseFloat(product.orderBumpDiscount) : 0,
+                orderBumpPrice: product.orderBumpPrice != null ? parseFloat(product.orderBumpPrice) : null,
                 ...(targetVariantId && {
                     variantId: targetVariantId,
                     variantAttributes: product.variantAttributes,
@@ -120,6 +127,13 @@ export const useCart = () => {
                 stockQuantity: product.stockQuantity ?? product.quantity ?? null,
                 insideDhakaDeliveryCharge: product.insideDhakaDeliveryCharge ?? null,
                 outsideDhakaDeliveryCharge: product.outsideDhakaDeliveryCharge ?? null,
+                // Order Bump fields
+                orderBumpProductId: product.orderBumpProductId || null,
+                orderBumpProduct: product.orderBumpProduct || null,
+                orderBumpTitle: product.orderBumpTitle || null,
+                orderBumpSubtitle: product.orderBumpSubtitle || null,
+                orderBumpDiscount: product.orderBumpDiscount != null ? parseFloat(product.orderBumpDiscount) : 0,
+                orderBumpPrice: product.orderBumpPrice != null ? parseFloat(product.orderBumpPrice) : null,
                 ...(targetVariantId && {
                     variantId: targetVariantId,
                     variantAttributes: product.variantAttributes,

@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Sparkles, Mic, MicOff, Volume2, VolumeX, Send, X, Bot, User, ShoppingBag } from "lucide-react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { Sparkles, Mic, MicOff, Volume2, VolumeX, Send, X, Bot, User, ExternalLink } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 
 export default function AiAssistantWidget() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -17,7 +20,48 @@ export default function AiAssistantWidget() {
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
-  const [voiceGreetingPlayed, setVoiceGreetingPlayed] = useState(false);
+
+  // Helper to extract product slug if user is currently on /product/[slug]
+  const getCurrentProductSlug = () => {
+    if (!pathname) return null;
+    const match = pathname.match(/\/product\/([^\/?#]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  };
+
+  // Render message text with auto-linkified URLs
+  const renderMessageContent = (text) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        const isInternalProduct = part.includes('/product/');
+        let path = part;
+        try {
+          const parsed = new URL(part);
+          path = parsed.pathname + parsed.search;
+        } catch (_) {}
+
+        return (
+          <Link
+            key={index}
+            href={isInternalProduct ? path : part}
+            target={isInternalProduct ? "_self" : "_blank"}
+            rel="noopener noreferrer"
+            onClick={() => {
+              if (isInternalProduct) setIsOpen(false);
+            }}
+            className="inline-flex items-center gap-1 font-bold text-[#F45116] underline underline-offset-2 hover:text-[#D9400B] bg-orange-50 px-1.5 py-0.5 rounded mx-1 transition-colors"
+          >
+            <span>{isInternalProduct ? "পণ্যটি দেখুন ↗" : part}</span>
+            <ExternalLink size={11} className="inline shrink-0" />
+          </Link>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -55,46 +99,51 @@ export default function AiAssistantWidget() {
     }
   }, []);
 
-  // Text-To-Speech function using browser native speech synthesis
-  const speakText = (text) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
+  const audioPlayerRef = useRef(null);
+  const [playingIndex, setPlayingIndex] = useState(null);
 
-    window.speechSynthesis.cancel();
-
-    // Clean markdown stars/formatting for clean voice
+  // Play natural Bengali voice via server-side streaming API
+  const speakText = (text, messageIndex = null) => {
+    if (!text) return;
     const cleanText = text.replace(/[*#_~`]/g, "").trim();
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const ttsUrl = `${apiUrl}/api/ai/tts?text=${encodeURIComponent(cleanText)}`;
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = "bn-BD";
-    utterance.rate = 1.0;
-    utterance.pitch = 1.05;
+    stopSpeaking();
 
-    // Pick Bengali voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const bnVoice = voices.find((v) => v.lang.startsWith("bn") || v.name.includes("Bangla") || v.name.includes("Bengali"));
-    if (bnVoice) {
-      utterance.voice = bnVoice;
-    }
+    const audio = new Audio(ttsUrl);
+    audio.playbackRate = 1.15; // Natural, energetic, fast speaking speed
+    audioPlayerRef.current = audio;
+    setIsSpeaking(true);
+    setPlayingIndex(messageIndex);
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    audio.onended = () => {
+      setIsSpeaking(false);
+      setPlayingIndex(null);
+    };
+    audio.onerror = () => {
+      setIsSpeaking(false);
+      setPlayingIndex(null);
+    };
 
-    window.speechSynthesis.speak(utterance);
+    audio.play().catch((err) => {
+      console.warn("Audio playback failed:", err?.message);
+      setIsSpeaking(false);
+      setPlayingIndex(null);
+    });
   };
 
   const stopSpeaking = () => {
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      audioPlayerRef.current.currentTime = 0;
+      audioPlayerRef.current = null;
+    }
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
-      setIsSpeaking(false);
     }
-  };
-
-  // Welcome Voice on first user gesture
-  const playWelcomeVoice = () => {
-    if (voiceGreetingPlayed) return;
-    setVoiceGreetingPlayed(true);
-    speakText("এখন এ আপনাকে স্বাগতম। সেরা মূল্যে খাঁটি পণ্য পেতে আমরা আছি আপনার সাথে।");
+    setIsSpeaking(false);
+    setPlayingIndex(null);
   };
 
   // Auto-scroll messages
@@ -130,17 +179,19 @@ export default function AiAssistantWidget() {
     setIsLoading(true);
 
     try {
+      const currentProductSlug = getCurrentProductSlug();
       const res = await apiClient("/api/ai/chat", {
         method: "POST",
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({
+          message: text,
+          currentProductId: currentProductSlug,
+        }),
       });
 
       const reply = res?.reply || res?.data?.reply || "দুঃখিত, কোনো উত্তর পাওয়া যায়নি।";
       const botMsg = { role: "assistant", text: reply };
       setMessages((prev) => [...prev, botMsg]);
-
-      // Speak response out loud
-      speakText(reply);
+      // Note: Voice is NOT auto-played. User can click 'শুনুন' button if they want to listen.
     } catch (err) {
       console.error("AI Assistant query failed:", err);
       setMessages((prev) => [
@@ -158,13 +209,12 @@ export default function AiAssistantWidget() {
   return (
     <>
       {/* Floating Launcher Button */}
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+      <div className="fixed bottom-6 right-6 z-[80] flex items-center gap-3">
         {!isOpen && (
           <button
             type="button"
             onClick={() => {
               setIsOpen(true);
-              playWelcomeVoice();
             }}
             className="group relative flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-[#F45116] via-[#FF6B35] to-[#F45116] text-white font-bold text-xs sm:text-sm rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-white/40 cursor-pointer"
           >
@@ -180,7 +230,7 @@ export default function AiAssistantWidget() {
 
       {/* AI Assistant Chat Modal */}
       {isOpen && (
-        <div className="fixed bottom-6 right-4 sm:right-6 w-[92vw] sm:w-[380px] h-[520px] max-h-[85vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 right-4 sm:right-6 w-[92vw] sm:w-[400px] h-[550px] max-h-[88vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col z-[80] overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
           <div className="bg-gradient-to-r from-[#102D50] to-[#1E4675] text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -244,21 +294,42 @@ export default function AiAssistantWidget() {
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-2xs ${
+                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-[13px] leading-relaxed shadow-2xs ${
                       isUser
                         ? "bg-[#F45116] text-white rounded-tr-none font-medium"
                         : "bg-white text-slate-800 border border-slate-200/80 rounded-tl-none font-normal"
                     }`}
                   >
-                    <p className="whitespace-pre-line">{msg.text}</p>
+                    <div className="whitespace-pre-line leading-relaxed">
+                      {isUser ? msg.text : renderMessageContent(msg.text)}
+                    </div>
                     {!isUser && (
                       <button
                         type="button"
-                        onClick={() => speakText(msg.text)}
-                        className="mt-1.5 text-[10px] text-slate-400 hover:text-[#F45116] flex items-center gap-1 transition cursor-pointer"
+                        onClick={() => {
+                          if (isSpeaking && playingIndex === i) {
+                            stopSpeaking();
+                          } else {
+                            speakText(msg.text, i);
+                          }
+                        }}
+                        className={`mt-2 text-[11px] font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                          isSpeaking && playingIndex === i
+                            ? "bg-[#F45116]/10 text-[#F45116] border border-[#F45116]/30 font-semibold"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-[#F45116]"
+                        }`}
                       >
-                        <Volume2 size={12} />
-                        <span>শুনুন</span>
+                        {isSpeaking && playingIndex === i ? (
+                          <>
+                            <VolumeX size={13} className="text-[#F45116] animate-pulse" />
+                            <span>বন্ধ করুন</span>
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 size={13} />
+                            <span>শুনুন</span>
+                          </>
+                        )}
                       </button>
                     )}
                   </div>
@@ -282,14 +353,20 @@ export default function AiAssistantWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Prompts */}
-          <div className="px-3 py-1.5 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
-            {["ডেলিভারি চার্জ কত?", "ক্যাশ অন ডেলিভারি আছে?", "নতুন কী অফার আছে?"].map((prompt, idx) => (
+          {/* Quick Prompts - Flex wrap on desktop/mobile so all options are clearly visible */}
+          <div className="px-3 py-2 bg-slate-50/90 border-t border-slate-200/80 flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+            {[
+              "ডেলিভারি চার্জ কত?",
+              "কী কী কালার আছে?",
+              "ডিসকাউন্টে দাম কত?",
+              "ক্যাশ অন ডেলিভারি আছে?",
+              "প্রোডাক্ট লিংক দিন"
+            ].map((prompt, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSendMessage(prompt)}
-                className="whitespace-nowrap px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] rounded-full transition cursor-pointer font-medium"
+                className="px-2.5 py-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-[#F45116]/40 text-slate-700 hover:text-[#F45116] text-[11px] rounded-lg transition-colors cursor-pointer font-medium shadow-2xs"
               >
                 {prompt}
               </button>

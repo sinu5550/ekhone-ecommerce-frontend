@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import TopHeader from "./TopHeader";
 import SearchBar from "./SearchBar";
-import { useCategories, useContact } from "@/lib/dataFetch";
+import { useCategories, useContact, useStoreSettings } from "@/lib/dataFetch";
 import { useUser } from "@/hooks/useUser";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/hooks/useWishlist";
@@ -40,6 +40,7 @@ export default function NavbarClient({
   // Live SWR updates on tab focus / interval without manual page refresh
   const { categories } = useCategories(initialCategories);
   const { contactData } = useContact(initialContact);
+  const { storeSettings } = useStoreSettings();
   const { getCartCount } = useCart();
   const { getWishlistCount } = useWishlist();
   const { openCartDrawer } = useCartDrawer();
@@ -107,13 +108,21 @@ export default function NavbarClient({
               </button>
 
               <Link href="/" className="flex items-center gap-2 group">
-                <div className="relative w-28 sm:w-36 h-9 sm:h-10">
+                <div
+                  className={`relative transition-all ${
+                    storeSettings?.navbarLogoBg
+                      ? "w-32 sm:w-44 h-10 sm:h-12 bg-white p-1.5 rounded-lg shadow-2xs border border-slate-100 flex items-center justify-center"
+                      : "w-36 sm:w-48 h-10 sm:h-12 bg-transparent flex items-center justify-start"
+                  }`}
+                >
                   <Image
-                    src="/ekhone.png"
+                    src={storeSettings?.logo || "/ekhone.png"}
                     alt="Ekhone"
                     fill
                     priority
-                    className="object-contain object-left transition-transform duration-200 group-hover:scale-[1.02]"
+                    className={`object-contain transition-transform duration-200 group-hover:scale-[1.02] ${
+                      storeSettings?.navbarLogoBg ? "object-center" : "object-left"
+                    }`}
                   />
                 </div>
               </Link>
@@ -160,6 +169,18 @@ export default function NavbarClient({
                       className="block px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
                     >
                       My Orders
+                    </Link>
+                    <Link
+                      href="/my-account/address-book"
+                      className="block px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+                    >
+                      Address Book
+                    </Link>
+                    <Link
+                      href="/track-order"
+                      className="block px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+                    >
+                      Track Order
                     </Link>
                     <button
                       type="button"
@@ -432,7 +453,7 @@ export default function NavbarClient({
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div className="relative w-32 h-9">
                 <Image
-                  src="/ekhone.png"
+                  src={storeSettings?.logo || "/ekhone.png"}
                   alt="Ekhone"
                   fill
                   className="object-contain object-left"

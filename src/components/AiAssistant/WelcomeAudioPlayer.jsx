@@ -74,35 +74,52 @@ export default function WelcomeAudioPlayer() {
         setIsPlaying(false);
       };
     } else if (isHomePage) {
-      // STRICTLY ONLY ON HOMEPAGE
+      // STRICTLY ONLY ON HOMEPAGE - PLAY ONLY ONCE PER SESSION ON FIRST USER INTERACTION
       setActiveMode("welcome");
+
+      // Check if welcome audio has already played in this user's browsing session
+      const hasPlayedSession = typeof window !== "undefined" && sessionStorage.getItem("ekhone_welcome_played");
+      if (hasPlayedSession) {
+        // User has already heard welcome message once, do not auto-play again
+        return;
+      }
+
       audio.src = "/audio/welcome.mp3";
       audio.playbackRate = 1.15;
       audio.load();
       audio.playbackRate = 1.15;
 
-      const playWelcome = () => {
-        if (!audioRef.current || pathname !== "/") return;
+      const removeListeners = () => {
+        ["click", "touchstart", "touchend", "pointerdown", "keydown"].forEach((ev) => {
+          window.removeEventListener(ev, handleFirstInteraction, true);
+        });
+      };
+
+      const handleFirstInteraction = () => {
+        if (!audioRef.current || pathname !== "/") {
+          removeListeners();
+          return;
+        }
+
+        // Mark as played immediately so it never triggers again in this session
+        try {
+          sessionStorage.setItem("ekhone_welcome_played", "true");
+        } catch (_) {}
+
+        removeListeners();
+
         audioRef.current.playbackRate = 1.15;
         audioRef.current
           .play()
           .then(() => {
             setIsPlaying(true);
-            removeListeners();
           })
           .catch(() => {});
       };
 
-      playWelcome();
-
-      const removeListeners = () => {
-        ["click", "touchstart", "touchend", "pointerdown", "keydown"].forEach((ev) => {
-          window.removeEventListener(ev, playWelcome, true);
-        });
-      };
-
+      // Listen for the customer's first click or touch on the site
       ["click", "touchstart", "touchend", "pointerdown", "keydown"].forEach((ev) => {
-        window.addEventListener(ev, playWelcome, { capture: true, passive: true });
+        window.addEventListener(ev, handleFirstInteraction, { capture: true, passive: true });
       });
 
       return () => {

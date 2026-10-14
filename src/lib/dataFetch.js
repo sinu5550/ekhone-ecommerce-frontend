@@ -64,3 +64,26 @@ export const useContact = (fallbackData = null) => {
         mutate,
     };
 };
+
+export const useStoreSettings = (fallbackData = null) => {
+    const { data, error, isLoading, isValidating, mutate } = useSWR(
+        `${API_URL}/api/store-settings`,
+        fetcher,
+        {
+            fallbackData,
+            revalidateOnFocus: true,
+            dedupingInterval: 10000,
+        }
+    );
+
+    const storeSettings = data?.data || data || null;
+
+    return {
+        storeSettings,
+        error,
+        isLoading,
+        isValidating,
+        mutate,
+    };
+};
+

@@ -59,6 +59,8 @@ const OrderSummary = ({
   onUpdateQuantity,
   onSelectVariant,
   deliveryCharges: externalDeliveryCharges = null,
+  orderBumpItem = null,
+  orderBumpDiscount = 0,
   renderOnly = null, // 'products' | 'summary' | null
 }) => {
   const regularItems = cart.filter((item) => !item.isBundle);
@@ -137,6 +139,15 @@ const OrderSummary = ({
       totalProductDiscount += discountPerUnit * quantity;
     });
 
+    // If order bump is checked, add bump product price and discount
+    if (orderBumpItem) {
+      const bumpOriginalPrice = parseFloat(orderBumpItem.originalPrice || orderBumpItem.price || 0);
+      const bumpCurrentPrice = parseFloat(orderBumpItem.price || 0);
+      subtotalBeforeDiscount += bumpOriginalPrice;
+      const bumpItemDiscount = bumpOriginalPrice > bumpCurrentPrice ? (bumpOriginalPrice - bumpCurrentPrice) : 0;
+      totalProductDiscount += bumpItemDiscount + parseFloat(orderBumpDiscount || 0);
+    }
+
     const subtotalAfterDiscount = subtotalBeforeDiscount - totalProductDiscount;
     const shippingMethod = watch ? (watch("shipping") || "dhaka-city") : "dhaka-city";
     const currentCharges =
@@ -188,6 +199,8 @@ const OrderSummary = ({
     appliedCoupon,
     externalCouponDiscount,
     externalDeliveryCharges,
+    orderBumpItem,
+    orderBumpDiscount,
   ]);
 
   const totals = calculateTotals();
@@ -482,6 +495,18 @@ const OrderSummary = ({
             {renderPrice(totals.subtotalBeforeDiscount)}
           </span>
         </div>
+
+        {orderBumpItem && (
+          <div className="flex justify-between items-center text-sm text-slate-700 bg-amber-50/60 px-2 py-1 rounded-md border border-amber-200/60">
+            <span className="flex items-center gap-1.5 truncate max-w-[200px] text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F45116]"></span>
+              <span className="font-semibold truncate">Order Bump: {orderBumpItem.productName}</span>
+            </span>
+            <span className="font-bold text-gray-900 shrink-0 text-xs">
+              +{renderPrice(orderBumpItem.price)}
+            </span>
+          </div>
+        )}
 
         {totals.totalProductDiscount > 0 && (
           <div className="flex justify-between items-center text-sm text-red-600">

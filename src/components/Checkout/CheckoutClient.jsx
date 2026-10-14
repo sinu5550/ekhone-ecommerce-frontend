@@ -14,8 +14,10 @@ import { useCart } from "@/hooks/useCart";
 import { useCartDrawer } from "@/context/CartDrawerContext";
 import BillingDetails from "@/components/Checkout/BillingDetails";
 import OrderSummary from "@/components/Checkout/OrderSummary";
+import CheckoutOrderBump from "@/components/Checkout/CheckoutOrderBump";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
 import { getVariantDisplayLabel } from "@/lib/variantHelpers";
+import { useUser } from "@/hooks/useUser";
 import { 
   trackBeginCheckout, 
   trackAddShippingInfo, 
@@ -23,10 +25,27 @@ import {
   trackPurchase 
 } from "@/utils/dataLayer";
 
+// Standalone safe helper to guarantee variant label formatting never throws ReferenceError
+function safeVariantDisplayLabel(v) {
+  try {
+    if (typeof getVariantDisplayLabel === "function") {
+      const res = getVariantDisplayLabel(v);
+      if (res) return res;
+    }
+  } catch (_) {}
+  if (!v) return "";
+  if (v.attributes && typeof v.attributes === "object") {
+    const vals = Object.values(v.attributes).filter(Boolean);
+    if (vals.length > 0) return vals.join(" - ");
+  }
+  return [v.color, v.size].filter(Boolean).join(" - ") || "";
+}
+
 export default function CheckoutClient({ initialContact = null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDirectBuyNow = searchParams?.get("buyNow") === "true";
+  const { user } = useUser();
   const { openCartDrawer } = useCartDrawer();
   const {
     cart,
@@ -55,6 +74,72 @@ export default function CheckoutClient({ initialContact = null }) {
   // Coupon state
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponDiscount, setCouponDiscount] = useState(0);
+
+  // Order Bump state
+  const [includeBump, setIncludeBump] = useState(false);
+  const [selectedBumpVariant, setSelectedBumpVariant] = useState(null);
+
+  // Derive order bump configuration from the items in checkout
+  const bumpConfig = (() => {
+    for (const item of checkoutItems) {
+      const bumpProd = item.orderBumpProduct || item.product?.orderBumpProduct;
+      if (bumpProd && (bumpProd.id || bumpProd.productName)) {
+        return {
+          product: bumpProd,
+          title: item.orderBumpTitle || item.product?.orderBumpTitle || "স্পেশাল অ্যাড-অন অফার!",
+          subtitle: item.orderBumpSubtitle || item.product?.orderBumpSubtitle || "মূল পণ্যের সাথে একই পার্সেল ডেলিভারিতে পাচ্ছেন আকর্ষণীয় অতিরিক্ত ছাড়!",
+          discount: parseFloat(item.orderBumpDiscount ?? item.product?.orderBumpDiscount ?? 0),
+          price: item.orderBumpPrice !== null && item.orderBumpPrice !== undefined ? item.orderBumpPrice : item.product?.orderBumpPrice,
+        };
+      }
+    }
+    return null;
+  })();
+
+  // Synchronize initial bump variant when bumpConfig changes
+  useEffect(() => {
+    if (bumpConfig?.product?.productVariants?.length > 0) {
+      setSelectedBumpVariant((prev) => {
+        if (prev && bumpConfig.product.productVariants.some((v) => v.id === prev.id)) {
+          return prev;
+        }
+        return bumpConfig.product.productVariants[0];
+      });
+    } else {
+      setSelectedBumpVariant(null);
+    }
+  }, [bumpConfig?.product?.id]);
+
+  // Construct active bump item object if includeBump is true
+  const activeBumpItem = (includeBump && bumpConfig?.product) ? (() => {
+    const bProd = bumpConfig.product;
+    const v = selectedBumpVariant;
+    const hasConfiguredPrice =
+      bumpConfig.price !== null &&
+      bumpConfig.price !== undefined &&
+      !isNaN(parseFloat(bumpConfig.price)) &&
+      parseFloat(bumpConfig.price) > 0;
+
+    const basePrice = hasConfiguredPrice
+      ? parseFloat(bumpConfig.price)
+      : v?.price
+      ? parseFloat(v.price)
+      : parseFloat(bProd.salePrice || bProd.price || 0);
+
+    return {
+      id: bProd.id,
+      productId: bProd.id,
+      productName: bProd.productName,
+      price: basePrice,
+      originalPrice: parseFloat(v?.price || bProd.price || basePrice),
+      quantity: 1,
+      variantId: v?.id || null,
+      selectedVariant: v || null,
+      isOrderBump: true,
+    };
+  })() : null;
+
+  const bumpExtraDiscount = (includeBump && bumpConfig) ? parseFloat(bumpConfig.discount || 0) : 0;
 
   // Place Order handler ref to prevent re-render state loops
   const placeOrderRef = useRef(null);
@@ -286,6 +371,15 @@ export default function CheckoutClient({ initialContact = null }) {
         totalProductDiscount += discountPerUnit * quantity;
       });
 
+      // Factor in Order Bump item if checked by customer
+      if (activeBumpItem) {
+        const bumpOrig = parseFloat(activeBumpItem.originalPrice || activeBumpItem.price || 0);
+        const bumpCur = parseFloat(activeBumpItem.price || 0);
+        subtotalBeforeDiscount += bumpOrig;
+        const bumpBaseDisc = bumpOrig > bumpCur ? (bumpOrig - bumpCur) : 0;
+        totalProductDiscount += bumpBaseDisc + bumpExtraDiscount;
+      }
+
       const subtotalAfterDiscount = subtotalBeforeDiscount - totalProductDiscount;
       const couponDiscountAmount = couponDiscount || 0;
 
@@ -306,7 +400,7 @@ export default function CheckoutClient({ initialContact = null }) {
         const lineTotal = unitPrice * quantity;
 
         const variantAttrs = item.variantAttributes || item.attributes || null;
-        const variantLabel = getVariantDisplayLabel({ attributes: variantAttrs, color: item.color, size: item.size }) || null;
+        const variantLabel = safeVariantDisplayLabel({ attributes: variantAttrs, color: item.color, size: item.size }) || null;
         let variantTypeStr =
           item.variantType || item.variantTitle || item.variantName || variantLabel || null;
         if (!variantTypeStr && variantAttrs && typeof variantAttrs === "object") {
@@ -359,6 +453,46 @@ export default function CheckoutClient({ initialContact = null }) {
         return baseItem;
       });
 
+      // If customer checked the Order Bump product, add it to apiItems
+      if (activeBumpItem && bumpConfig?.product) {
+        const bumpProd = bumpConfig.product;
+        const bVariant = selectedBumpVariant;
+        const bumpUnitPrice = parseFloat(activeBumpItem.price || 0);
+        const bumpOriginalPrice = parseFloat(activeBumpItem.originalPrice || bumpUnitPrice);
+        const bumpVariantAttrs = bVariant?.attributes || bVariant?.variantAttributes || null;
+        const bumpVariantLabel = bVariant ? safeVariantDisplayLabel(bVariant) : null;
+        const effectiveBumpPrice = Math.max(0, bumpUnitPrice - bumpExtraDiscount);
+        const bumpProdName = bVariant && bumpVariantLabel
+          ? `${bumpProd.productName} - ${bumpVariantLabel}`
+          : bumpProd.productName;
+
+        apiItems.push({
+          productId: bumpProd.id,
+          productName: bumpProdName,
+          name: bumpProdName,
+          sku: bVariant?.sku || bumpProd.sku || null,
+          quantity: 1,
+          unitPrice: effectiveBumpPrice,
+          price: effectiveBumpPrice,
+          discount: bumpExtraDiscount,
+          discountValue: bumpExtraDiscount,
+          discountType: "Fixed",
+          tax: 0,
+          lineTotal: effectiveBumpPrice,
+          originalPrice: bumpOriginalPrice,
+          category: bumpProd.category || bumpProd.categoryName || bumpProd.subCategory?.category?.name,
+          brand: bumpProd.brand || bumpProd.brandName || bumpProd.brand?.name,
+          ...(bVariant?.id && {
+            variantId: bVariant.id,
+            productVariantId: bVariant.id,
+            productType: "variant",
+            variantAttributes: bumpVariantAttrs || {},
+            attributes: bumpVariantAttrs || {},
+            variantType: bumpVariantLabel || "",
+          }),
+        });
+      }
+
       const orderPayload = {
         customerId: parseInt(customerId),
         shippingAddressId: parseInt(data.customerAddressId),
@@ -372,7 +506,7 @@ export default function CheckoutClient({ initialContact = null }) {
         grandTotal: Math.ceil(grandTotal),
         paidAmount: 0,
         dueAmount: Math.ceil(grandTotal),
-        note: data.note || "",
+        note: `${data.note || ""}${activeBumpItem ? ` [Order Bump: ${bumpConfig.product.productName}${selectedBumpVariant ? ` (${safeVariantDisplayLabel(selectedBumpVariant)})` : ""}]` : ""}`.trim(),
         status: "Pending",
         items: apiItems,
         orderType: isBuyNow ? "buy_now" : "cart",
@@ -556,6 +690,7 @@ export default function CheckoutClient({ initialContact = null }) {
           {/* Left Column: Billing Details */}
           <div className="lg:col-span-7">
             <BillingDetails
+              user={user}
               register={register}
               errors={errors}
               watch={watch}
@@ -597,6 +732,17 @@ export default function CheckoutClient({ initialContact = null }) {
               />
             </div>
 
+            {/* Order Bump Card: Shown right before Order Summary calculation box */}
+            {bumpConfig && bumpConfig.product && (
+              <CheckoutOrderBump
+                bumpConfig={bumpConfig}
+                includeBump={includeBump}
+                setIncludeBump={setIncludeBump}
+                selectedBumpVariant={selectedBumpVariant}
+                setSelectedBumpVariant={setSelectedBumpVariant}
+              />
+            )}
+
             {/* Order Calculations, Terms, and Place Order Button (Visible on both Mobile & Desktop) */}
             <OrderSummary
               cart={checkoutItems}
@@ -615,6 +761,8 @@ export default function CheckoutClient({ initialContact = null }) {
               placeOrderRef={placeOrderRef}
               onRemoveItem={handleRemoveItem}
               onUpdateQuantity={handleUpdateQuantity}
+              orderBumpItem={activeBumpItem}
+              orderBumpDiscount={bumpExtraDiscount}
               renderOnly="summary"
             />
           </div>

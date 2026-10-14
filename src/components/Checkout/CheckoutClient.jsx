@@ -18,6 +18,21 @@ import CheckoutOrderBump from "@/components/Checkout/CheckoutOrderBump";
 import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
 import { getVariantDisplayLabel } from "@/lib/variantHelpers";
 import { useUser } from "@/hooks/useUser";
+
+// Local safe helper to guarantee variant label formatting never throws ReferenceError
+const safeVariantDisplayLabel = (v) => {
+  if (typeof getVariantDisplayLabel === "function") {
+    try {
+      return getVariantDisplayLabel(v) || "";
+    } catch (_) {}
+  }
+  if (!v) return "";
+  if (v.attributes && typeof v.attributes === "object") {
+    const vals = Object.values(v.attributes).filter(Boolean);
+    if (vals.length > 0) return vals.join(" - ");
+  }
+  return [v.color, v.size].filter(Boolean).join(" - ") || "";
+};
 import { 
   trackBeginCheckout, 
   trackAddShippingInfo, 
@@ -384,7 +399,7 @@ export default function CheckoutClient({ initialContact = null }) {
         const lineTotal = unitPrice * quantity;
 
         const variantAttrs = item.variantAttributes || item.attributes || null;
-        const variantLabel = getVariantDisplayLabel({ attributes: variantAttrs, color: item.color, size: item.size }) || null;
+        const variantLabel = safeVariantDisplayLabel({ attributes: variantAttrs, color: item.color, size: item.size }) || null;
         let variantTypeStr =
           item.variantType || item.variantTitle || item.variantName || variantLabel || null;
         if (!variantTypeStr && variantAttrs && typeof variantAttrs === "object") {
@@ -444,7 +459,7 @@ export default function CheckoutClient({ initialContact = null }) {
         const bumpUnitPrice = parseFloat(activeBumpItem.price || 0);
         const bumpOriginalPrice = parseFloat(activeBumpItem.originalPrice || bumpUnitPrice);
         const bumpVariantAttrs = bVariant?.attributes || bVariant?.variantAttributes || null;
-        const bumpVariantLabel = bVariant ? getVariantDisplayLabel(bVariant) : null;
+        const bumpVariantLabel = bVariant ? safeVariantDisplayLabel(bVariant) : null;
         const effectiveBumpPrice = Math.max(0, bumpUnitPrice - bumpExtraDiscount);
         const bumpProdName = bVariant && bumpVariantLabel
           ? `${bumpProd.productName} - ${bumpVariantLabel}`
@@ -490,7 +505,7 @@ export default function CheckoutClient({ initialContact = null }) {
         grandTotal: Math.ceil(grandTotal),
         paidAmount: 0,
         dueAmount: Math.ceil(grandTotal),
-        note: `${data.note || ""}${activeBumpItem ? ` [Order Bump: ${bumpConfig.product.productName}${selectedBumpVariant ? ` (${getVariantDisplayLabel(selectedBumpVariant)})` : ""}]` : ""}`.trim(),
+        note: `${data.note || ""}${activeBumpItem ? ` [Order Bump: ${bumpConfig.product.productName}${selectedBumpVariant ? ` (${safeVariantDisplayLabel(selectedBumpVariant)})` : ""}]` : ""}`.trim(),
         status: "Pending",
         items: apiItems,
         orderType: isBuyNow ? "buy_now" : "cart",

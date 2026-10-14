@@ -23,10 +23,7 @@ export default function AiAssistantWidget() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
 
-  // If on a dedicated landing page or checkout page, don't show the widget
-  if (isLandingOrCheckout) {
-    return null;
-  }
+
 
   // Helper to extract product slug if user is currently on /product/[slug]
   const getCurrentProductSlug = () => {
@@ -212,6 +209,10 @@ export default function AiAssistantWidget() {
       setIsLoading(false);
     }
   };
+
+  if (isLandingOrCheckout) {
+    return null;
+  }
 
   return (
     <>

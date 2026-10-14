@@ -15,7 +15,7 @@ export default function LandingMinimalFooter({ phone = "+8801969957888" }) {
         <div className="inline-block rounded-lg px-4 shadow-sm">
           <div className="relative w-80 h-36 -mb-10">
             <Image
-              src={storeSettings?.footerLogo || storeSettings?.logo || "/ekhone.png"}
+              src={storeSettings?.footerLogo || storeSettings?.logo || "/ekhone-white.png"}
               alt="Ekhone"
               fill
               className="object-contain"

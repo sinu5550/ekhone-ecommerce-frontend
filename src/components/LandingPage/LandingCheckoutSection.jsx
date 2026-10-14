@@ -35,6 +35,7 @@ import {
 import { toast } from "react-hot-toast";
 import { apiClient } from "@/lib/apiClient";
 import { trackBeginCheckout, trackPurchase } from "@/utils/dataLayer";
+import { getVariantColorInfo, getVariantDisplayLabel } from "@/lib/variantHelpers";
 import { sendAbandonedOrderBeacon, sendAbandonedOrderCall } from "@/lib/abandonedOrderTracker";
 
 export default function LandingCheckoutSection({ 

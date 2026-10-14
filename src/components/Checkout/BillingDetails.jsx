@@ -22,6 +22,7 @@ import {
 import Swal from "sweetalert2";
 import Image from "next/image";
 import { FaLongArrowAltRight } from "react-icons/fa";
+import { calculateDeliveryCharges } from "@/lib/deliveryCharge";
 import { sendAbandonedOrderBeacon, sendAbandonedOrderCall } from "@/lib/abandonedOrderTracker";
 
 const BillingDetails = ({

@@ -12,8 +12,8 @@ export default function LandingMinimalFooter({ phone = "+8801969957888" }) {
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center space-y-6">
         {/* Logo in light badge */}
-        <div className="inline-block bg-white rounded-lg px-4 py-1.5 shadow-sm">
-          <div className="relative w-28 h-8">
+        <div className="inline-block rounded-lg px-4 shadow-sm">
+          <div className="relative w-80 h-36 -mb-10">
             <Image
               src={storeSettings?.footerLogo || storeSettings?.logo || "/ekhone.png"}
               alt="Ekhone"

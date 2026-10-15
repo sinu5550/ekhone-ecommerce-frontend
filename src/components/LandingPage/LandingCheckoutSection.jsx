@@ -33,6 +33,7 @@ import {
     FileText
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Swal from "sweetalert2";
 import { apiClient } from "@/lib/apiClient";
 import { trackBeginCheckout, trackPurchase } from "@/utils/dataLayer";
 import { getVariantColorInfo, getVariantDisplayLabel } from "@/lib/variantHelpers";
@@ -421,7 +422,8 @@ export default function LandingCheckoutSection({
                     city: deliveryArea === "inside" ? "Dhaka" : "Outside Dhaka"
                 },
                 items: orderItemsPayload,
-                orderItems: orderItemsPayload
+                orderItems: orderItemsPayload,
+                userAgent: typeof window !== "undefined" ? window.navigator?.userAgent : null,
             };
 
             const response = await apiClient("/api/order", {
@@ -449,7 +451,51 @@ export default function LandingCheckoutSection({
             }
         } catch (err) {
             console.error("Landing order error:", err);
-            toast.error(err.message || "অর্ডার সম্পন্ন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।", { id: toastId });
+            if (err?.code === "DUPLICATE_ORDER" || err?.isDuplicate || err?.message?.toLowerCase().includes("recently placed") || err?.message?.toLowerCase().includes("অর্ডার")) {
+                toast.dismiss(toastId);
+                const waitTimeText = err?.remainingTimeBn ? `অনুগ্রহ করে <b>${err.remainingTimeBn}</b> পর পুনরায় অর্ডার করার চেষ্টা করুন।` : "কিছুক্ষণ পর পুনরায় অর্ডার করুন।";
+                
+                // Ensure Bengali message even if old English was cached or returned
+                let displayMsg = err.message || "";
+                if (!displayMsg || displayMsg.toLowerCase().includes("you recently placed an order") || displayMsg.toLowerCase().includes("our team is processing it")) {
+                    displayMsg = `আপনি ইতিমধ্যে একটি অর্ডার${err.orderNumber ? ` (নম্বর: #${err.orderNumber})` : ''} সম্পন্ন করেছেন যা বর্তমানে প্রসেসিং রয়েছে।`;
+                }
+
+                Swal.fire({
+                    icon: "warning",
+                    title: "দুঃখিত! সম্প্রতি একটি অর্ডার সম্পন্ন হয়েছে",
+                    html: `
+                        <div style="font-family: 'Hind Siliguri', sans-serif;" class="text-left space-y-4 pt-1">
+                            <p class="text-slate-900 text-base sm:text-lg font-semibold leading-relaxed">
+                                ${displayMsg}
+                            </p>
+                            <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 space-y-2.5">
+                                ${err.orderNumber ? `
+                                <div class="text-sm sm:text-base font-bold flex items-center gap-2 text-amber-950">
+                                    <span>অর্ডার রেফারেন্স নম্বর:</span>
+                                    <span class="bg-amber-200/80 text-amber-950 px-2.5 py-1 rounded-lg font-extrabold tracking-wide">#${err.orderNumber}</span>
+                                </div>` : ''}
+                                <div class="text-amber-900 text-sm sm:text-base font-bold flex items-center gap-2">
+                                    <span class="text-lg">⏱️</span>
+                                    <span>${waitTimeText}</span>
+                                </div>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-normal">
+                                অর্ডারে কোনো পরিবর্তন করতে চাইলে বা তথ্য জানার থাকলে অনুগ্রহ করে আমাদের কাস্টমার সাপোর্ট হেল্পলাইনে যোগাযোগ করুন।
+                            </p>
+                        </div>
+                    `,
+                    confirmButtonText: "ঠিক আছে, বুঝেছি",
+                    confirmButtonColor: "#F45116",
+                    customClass: {
+                        popup: "rounded-3xl shadow-2xl p-6 sm:p-8 max-w-lg",
+                        title: "text-xl sm:text-2xl font-bold text-slate-900 pt-2",
+                        confirmButton: "font-semibold text-base px-8 py-3 rounded-xl shadow-lg",
+                    }
+                });
+            } else {
+                toast.error(err.message || "অর্ডার সম্পন্ন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।", { id: toastId });
+            }
         } finally {
             setIsSubmitting(false);
         }

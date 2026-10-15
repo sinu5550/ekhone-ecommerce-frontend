@@ -513,6 +513,7 @@ export default function CheckoutClient({ initialContact = null }) {
         couponCode: appliedCoupon?.code || null,
         couponDiscount: couponDiscountAmount || 0,
         customerEmail: data.email || null,
+        userAgent: typeof window !== "undefined" ? window.navigator?.userAgent : null,
       };
 
       const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(
@@ -531,6 +532,49 @@ export default function CheckoutClient({ initialContact = null }) {
       const response = await orderRes.json();
 
       if (!orderRes.ok) {
+        if (response.code === "DUPLICATE_ORDER" || response.isDuplicate) {
+          const waitTimeText = response.remainingTimeBn ? `অনুগ্রহ করে <b>${response.remainingTimeBn}</b> পর পুনরায় অর্ডার করার চেষ্টা করুন।` : "কিছুক্ষণ পর পুনরায় অর্ডার করুন।";
+
+          // Ensure Bengali message even if old English was cached or returned
+          let displayMsg = response.message || "";
+          if (!displayMsg || displayMsg.toLowerCase().includes("you recently placed an order") || displayMsg.toLowerCase().includes("our team is processing it")) {
+            displayMsg = `আপনি ইতিমধ্যে একটি অর্ডার${response.orderNumber ? ` (নম্বর: #${response.orderNumber})` : ''} সম্পন্ন করেছেন যা বর্তমানে প্রসেসিং রয়েছে।`;
+          }
+
+          Swal.fire({
+            icon: "warning",
+            title: "দুঃখিত! সম্প্রতি একটি অর্ডার সম্পন্ন হয়েছে",
+            html: `
+              <div style="font-family: 'Hind Siliguri', sans-serif;" class="text-left space-y-4 pt-1">
+                <p class="text-slate-900 text-base sm:text-lg font-semibold leading-relaxed">
+                  ${displayMsg}
+                </p>
+                <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 space-y-2.5">
+                  ${response.orderNumber ? `
+                  <div class="text-sm sm:text-base font-bold flex items-center gap-2 text-amber-950">
+                    <span>অর্ডার রেফারেন্স নম্বর:</span>
+                    <span class="bg-amber-200/80 text-amber-950 px-2.5 py-1 rounded-lg font-extrabold tracking-wide">#${response.orderNumber}</span>
+                  </div>` : ''}
+                  <div class="text-amber-900 text-sm sm:text-base font-bold flex items-center gap-2">
+                    <span class="text-lg">⏱️</span>
+                    <span>${waitTimeText}</span>
+                  </div>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-600 leading-normal">
+                  আপনার অর্ডারে কোনো তথ্য সংশোধন বা প্রশ্ন থাকলে অনুগ্রহ করে আমাদের কাস্টমার সাপোর্ট হেল্পলাইনে যোগাযোগ করুন।
+                </p>
+              </div>
+            `,
+            confirmButtonText: "ঠিক আছে, বুঝেছি",
+            confirmButtonColor: "#F45116",
+            customClass: {
+              popup: "rounded-3xl shadow-2xl p-6 sm:p-8 max-w-lg",
+              title: "text-xl sm:text-2xl font-bold text-slate-900 pt-2",
+              confirmButton: "font-semibold text-base px-8 py-3 rounded-xl shadow-lg",
+            }
+          });
+          return;
+        }
         throw new Error(response.message || "Failed to submit order");
       }
 

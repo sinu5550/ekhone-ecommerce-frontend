@@ -531,6 +531,22 @@ export default function CheckoutClient({ initialContact = null }) {
       const response = await orderRes.json();
 
       if (!orderRes.ok) {
+        if (response.code === "DUPLICATE_ORDER" || response.isDuplicate) {
+          Swal.fire({
+            icon: "warning",
+            title: "Recent Order Detected",
+            html: `
+              <div class="text-left text-sm space-y-3">
+                <p class="text-gray-700 leading-relaxed">${response.message || "You recently placed an order."}</p>
+                ${response.orderNumber ? `<div class="bg-amber-50 border border-amber-200 rounded p-2.5 text-xs text-amber-900 font-medium">Order Reference: <b>#${response.orderNumber}</b></div>` : ''}
+                <p class="text-xs text-gray-500">If you need to make changes or have questions, please reach out to our customer support team.</p>
+              </div>
+            `,
+            confirmButtonText: "I Understand",
+            confirmButtonColor: "#102D50",
+          });
+          return;
+        }
         throw new Error(response.message || "Failed to submit order");
       }
 

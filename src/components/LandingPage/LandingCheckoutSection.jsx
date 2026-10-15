@@ -33,6 +33,7 @@ import {
     FileText
 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Swal from "sweetalert2";
 import { apiClient } from "@/lib/apiClient";
 import { trackBeginCheckout, trackPurchase } from "@/utils/dataLayer";
 import { getVariantColorInfo, getVariantDisplayLabel } from "@/lib/variantHelpers";
@@ -449,7 +450,24 @@ export default function LandingCheckoutSection({
             }
         } catch (err) {
             console.error("Landing order error:", err);
-            toast.error(err.message || "অর্ডার সম্পন্ন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।", { id: toastId });
+            if (err?.code === "DUPLICATE_ORDER" || err?.isDuplicate || err?.message?.toLowerCase().includes("recently placed")) {
+                toast.dismiss(toastId);
+                Swal.fire({
+                    icon: "warning",
+                    title: "সম্প্রতি একটি অর্ডার সম্পন্ন হয়েছে",
+                    html: `
+                        <div class="text-left text-sm space-y-3 font-hind leading-relaxed">
+                            <p class="text-gray-800">${err.message || "আপনি সম্প্রতি একটি অর্ডার করেছেন। আমাদের টিম সেটি প্রসেস করছে।"}</p>
+                            ${err.orderNumber ? `<div class="bg-amber-50 border border-amber-200 rounded p-2.5 text-xs text-amber-900 font-bold">অর্ডার নাম্বার: #${err.orderNumber}</div>` : ''}
+                            <p class="text-xs text-gray-500">অর্ডারে কোনো পরিবর্তন করতে চাইলে অনুগ্রহ করে আমাদের কাস্টমার সাপোর্টে কল করুন।</p>
+                        </div>
+                    `,
+                    confirmButtonText: "ঠিক আছে",
+                    confirmButtonColor: "#102D50",
+                });
+            } else {
+                toast.error(err.message || "অর্ডার সম্পন্ন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।", { id: toastId });
+            }
         } finally {
             setIsSubmitting(false);
         }

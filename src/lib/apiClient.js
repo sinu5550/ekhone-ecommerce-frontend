@@ -33,7 +33,12 @@ export async function apiClient(endpoint, options = {}) {
             try {
                 errorData = await res.json();
             } catch (_) {}
-            throw new Error(errorData.message || `Request failed with status ${res.status}`);
+            const err = new Error(errorData.message || `Request failed with status ${res.status}`);
+            err.code = errorData.code;
+            err.isDuplicate = errorData.isDuplicate;
+            err.orderNumber = errorData.orderNumber;
+            err.status = res.status;
+            throw err;
         }
         return await res.json();
     } catch (err) {
@@ -42,7 +47,9 @@ export async function apiClient(endpoint, options = {}) {
             err?.name === "AbortError" || 
             err?.message?.includes("aborted") || 
             err?.digest === "DYNAMIC_SERVER_USAGE" || 
-            err?.message?.includes("Dynamic server usage")
+            err?.message?.includes("Dynamic server usage") ||
+            err?.code === "DUPLICATE_ORDER" ||
+            err?.isDuplicate
         ) {
             throw err;
         }

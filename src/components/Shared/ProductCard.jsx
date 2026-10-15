@@ -20,6 +20,23 @@ export default function ProductCard({ product, onOpenQuickView }) {
 
     const isVariantProduct = product.productType === "variant" && Array.isArray(product.productVariants) && product.productVariants.length > 0;
 
+    // Stock availability calculation
+    const isOutOfStock = (() => {
+        // If product status is explicitly false or inactive
+        if (product.status === false || product.status === 0) return true;
+
+        if (isVariantProduct) {
+            // Check if every variant is 0 or negative quantity
+            return product.productVariants.every(v => {
+                const qty = parseInt(v.quantity ?? v.stockQuantity, 10);
+                return isNaN(qty) || qty <= 0;
+            });
+        }
+
+        const qty = parseInt(product.quantity ?? product.stockQuantity, 10);
+        return isNaN(qty) || qty <= 0;
+    })();
+
     // Image logic
     const displayImage = product.images?.[0] || 
         product.productVariants?.[0]?.image || 
@@ -105,6 +122,10 @@ export default function ProductCard({ product, onOpenQuickView }) {
     const handleAddToCart = (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (isOutOfStock) {
+            toast.error("This product is currently out of stock");
+            return;
+        }
         if (isVariantProduct) {
             onOpenQuickView && onOpenQuickView(product);
             return;
@@ -133,6 +154,11 @@ export default function ProductCard({ product, onOpenQuickView }) {
     const handleBuyNow = (e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        if (isOutOfStock) {
+            toast.error("This product is currently out of stock");
+            return;
+        }
 
         let targetVariant = null;
         if (isVariantProduct) {
@@ -214,10 +240,15 @@ export default function ProductCard({ product, onOpenQuickView }) {
                     <button
                         type="button"
                         onClick={handleAddToCart}
-                        className="flex-1 py-2 px-3 rounded-lg bg-[#0F172A]/95 hover:bg-black text-white text-xs font-semibold shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer backdrop-blur-xs active:scale-95"
+                        disabled={isOutOfStock}
+                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold shadow-md flex items-center justify-center gap-1.5 transition-all backdrop-blur-xs active:scale-95 ${
+                            isOutOfStock 
+                                ? "bg-slate-400/90 text-white cursor-not-allowed" 
+                                : "bg-[#0F172A]/95 hover:bg-black text-white cursor-pointer"
+                        }`}
                     >
                         <ShoppingCart size={14} />
-                        <span>Add to Cart</span>
+                        <span>{isOutOfStock ? "Out of Stock" : "Add to Cart"}</span>
                     </button>
                     <button
                         type="button"
@@ -236,7 +267,7 @@ export default function ProductCard({ product, onOpenQuickView }) {
                     {/* Product Name (Strict max 2 lines with ellipsis truncation) */}
                     <Link href={`/product/${product.slug || product.id}`} className="block group-hover:text-primary transition-colors">
                         <h3 
-                            className="text-sm  font-medium text-slate-800 line-clamp-2 leading-[1.35] min-h-[2.7em] max-h-[2.7em] overflow-hidden" 
+                            className="text-sm font-medium text-slate-800 line-clamp-2 leading-[1.35] min-h-[2.7em] max-h-[2.7em] overflow-hidden" 
                             title={product.productName}
                         >
                             {product.productName}
@@ -263,7 +294,7 @@ export default function ProductCard({ product, onOpenQuickView }) {
                                 {hasPriceRange ? (
                                     (minBasePrice > minDiscountedPrice || maxBasePrice > maxDiscountedPrice) && (
                                         <span className="text-[11.5px] text-slate-400 line-through">
-                                            ৳{minBasePrice.toLocaleString()} - ৳{maxBasePrice.toLocaleString()}
+                                             ৳{minBasePrice.toLocaleString()} - ৳{maxBasePrice.toLocaleString()}
                                         </span>
                                     )
                                 ) : (
@@ -282,11 +313,17 @@ export default function ProductCard({ product, onOpenQuickView }) {
 
                     {/* Status Pill */}
                     <div className="flex items-center justify-between text-[11px]">
-                        {isNew ? (
-                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full ">
+                        {isOutOfStock ? (
+                            <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 border border-rose-200/60 px-2 py-0.5 rounded-full">
+                                Out of Stock
+                            </span>
+                        ) : isNew ? (
+                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                                 New
                             </span>
-                        ) : <span />}
+                        ) : (
+                            <span />
+                        )}
 
                         {product.totalSold || product._totalSold ? (
                             <span className="text-[10px] text-slate-400">
@@ -302,18 +339,28 @@ export default function ProductCard({ product, onOpenQuickView }) {
                         <button
                             type="button"
                             onClick={handleAddToCart}
-                            className="h-8 w-8 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0 shadow-2xs"
-                            title="Add to Cart"
+                            disabled={isOutOfStock}
+                            className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all shrink-0 shadow-2xs ${
+                                isOutOfStock
+                                    ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60"
+                                    : "bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 cursor-pointer active:scale-95"
+                            }`}
+                            title={isOutOfStock ? "Out of Stock" : "Add to Cart"}
                         >
                             <ShoppingCart size={14} />
                         </button>
                         <button
                             type="button"
                             onClick={handleBuyNow}
-                            className="flex-1 h-8 px-3 rounded-lg bg-primary hover:bg-primary-hover active:scale-95 text-white font-semibold text-xs sm:text-[12.5px] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs btn-shine relative overflow-hidden"
+                            disabled={isOutOfStock}
+                            className={`flex-1 h-8 px-3 rounded-lg font-semibold text-xs sm:text-[12.5px] transition flex items-center justify-center gap-1.5 shadow-xs relative overflow-hidden ${
+                                isOutOfStock
+                                    ? "bg-slate-300 text-slate-500 cursor-not-allowed border border-slate-300"
+                                    : "bg-primary hover:bg-primary-hover active:scale-95 text-white cursor-pointer btn-shine"
+                            }`}
                         >
                             <ShoppingBag size={13} className="relative z-10" />
-                            <span className="relative z-10">Buy Now</span>
+                            <span className="relative z-10">{isOutOfStock ? "Out of Stock" : "Buy Now"}</span>
                         </button>
                     </div>
 

@@ -37,6 +37,8 @@ export async function apiClient(endpoint, options = {}) {
             err.code = errorData.code;
             err.isDuplicate = errorData.isDuplicate;
             err.orderNumber = errorData.orderNumber;
+            err.remainingTimeBn = errorData.remainingTimeBn;
+            err.windowHours = errorData.windowHours;
             err.status = res.status;
             throw err;
         }
